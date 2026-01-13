@@ -1,15 +1,2 @@
-# dot files
-/.eide/log
-/APP/_APP_DrlibBuildErr.log
-/src/_src_DrlibBuildErr.log
-
-# project out
 /build
-/bin
-/obj
-/out
-
-# eide template
-*.ept
-*.eide-template
 
