@@ -21,11 +21,25 @@ PH0, PH1, PH2, PH3, PH4, PH5, PH6, PH7,PH8, PH9, PH10,PH11,PH12,PH13,PH14,PH15,
 // PI端口
 PI0, PI1, PI2, PI3, PI4, PI5, PI6, PI7,PI8, PI9, PI10,PI11,PI12,PI13,PI14,PI15,
 
+PIN_END
+
 }GpioIndex;
 
+typedef enum 
+{
+    GPIO_IN,
+    GPIO_OUT
+}GpioDir;
+
+typedef enum 
+{
+    GPIO_LEVEL_LOW = false,
+    GPIO_LEVEL_HIGH = true
+}GpioLevel;
+
 typedef struct {
-    void (*init)(GpioIndex pin, uint32_t mode);
-    void (*write)(GpioIndex pin, uint8_t val);
+    void (*init)(GpioIndex pin, GpioDir dir);
+    void (*write)(GpioIndex pin, GpioLevel val);
     uint8_t (*read)(GpioIndex pin);
 } hal_gpio_ops_t;
 

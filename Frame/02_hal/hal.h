@@ -5,8 +5,14 @@ extern "C" {
 #endif
 
 #include "mcu.h"
+#include "hal_systick.h"
+#include "hal_dwt.h"
 #include "hal_gpio.h"
 #include "hal_uart.h" 
+#include "hal_can.h" 
+#include "hal_timer.h"
+#include "hal_adc.h"
+#include "hal_spi.h"
 
 #ifdef __cplusplus
 }

@@ -72,7 +72,7 @@ uint32_t get_gpio_rcc_clock(GpioIndex pin) {
     return 0;  // 无效的引脚
 }
 
-static void gpio_init(GpioIndex pin, uint32_t mode) {
+static void gpio_init(GpioIndex pin, GpioDir dir) {
     GPIO_InitTypeDef GPIO_InitStruct;
     
     // 获取 GPIO 端口和引脚
@@ -95,7 +95,7 @@ static void gpio_init(GpioIndex pin, uint32_t mode) {
     
     // 根据 mode 参数设置 GPIO 模式
     // 这里假设 mode 是 STM32 标准外设库的 GPIO 模式
-    GPIO_InitStruct.GPIO_Mode = (GPIOMode_TypeDef)mode;
+    GPIO_InitStruct.GPIO_Mode = (GPIOMode_TypeDef)dir;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;  // 默认速度
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;     // 默认推挽输出
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;  // 默认无上下拉
@@ -104,7 +104,7 @@ static void gpio_init(GpioIndex pin, uint32_t mode) {
     GPIO_Init(port, &GPIO_InitStruct);
 }
 
-static void gpio_write(GpioIndex pin, uint8_t val) {
+static void gpio_write(GpioIndex pin, GpioLevel val) {
     GPIO_TypeDef* port = get_gpio_port(pin);
     uint16_t pin_number = get_gpio_pin(pin);
     

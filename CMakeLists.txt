@@ -97,15 +97,15 @@ add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage-le
 
 #源文件包含
 file(GLOB_RECURSE SOURCES
-        "main/*.*"
-        "APP/*.*"
+        "main/*.cpp"
+        "APP/*.cpp"
         "Frame/01_mcu/*.*"
         "Frame/01_mcu/Libraries/STM32F4xx_StdPeriph_Driver/src/*.c"
         "Frame/02_hal/*.c"
         "Frame/03_chip_driver/*.c"
         "Frame/04_device_cpp/*.cpp"
         "Frame/05_scheduler_cpp/*.cpp"
-
+ 
         )
 
 #编译优化等级

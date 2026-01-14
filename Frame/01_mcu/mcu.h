@@ -9,4 +9,5 @@
 #include "stdbool.h"
 #include "stm32f4xx_conf.h"
 
+#define SYSTEM_CLOCK_MHZ    180
 
