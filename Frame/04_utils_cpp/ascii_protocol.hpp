@@ -1,6 +1,4 @@
 #pragma once
-
-
 enum class CheckType : uint8_t
 {
     NONE = 0,
@@ -30,18 +28,27 @@ class AsciiProtocol
 public:
     explicit AsciiProtocol(const ProtocolFormat& fmt);
 
+    /* ---------- 接收解析 ---------- */
     void reset();
-
-    // 输入一个 ASCII 字符，解析成功返回 true
     bool input(char ch);
 
     const char* cmd()  const { return cmd_; }
     const char* data() const { return data_; }
     uint16_t    dataLen() const { return data_len_; }
 
+    /* ---------- 发送组包 ---------- */
+    // 返回生成的帧长度，0 表示失败
+    uint16_t buildFrame(const char* cmd,
+                        const char* data,
+                        uint16_t    data_len,
+                        char*       out_buf,
+                        uint16_t    out_buf_size) const;
+
 protected:
     uint16_t asciiToUint(const char* buf, uint8_t len) const;
     uint16_t calcCheck() const;
+    uint16_t calcCheck(const char* data, uint16_t len) const;
+    void     uintToAscii(uint16_t value, char* buf, uint8_t len) const;
 
 private:
     enum class State : uint8_t

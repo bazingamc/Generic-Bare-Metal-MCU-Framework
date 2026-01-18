@@ -8,7 +8,9 @@ typedef enum  // UART编号
     _UART3,
     _UART4,
     _UART5,
-    _UART6
+    _UART6,
+    _UART7,
+    _UART8
 } UartIndex;
 
 typedef struct {
@@ -17,6 +19,7 @@ typedef struct {
     void (*send_string)(UartIndex uart, const char* str);
     uint8_t (*receive_byte)(UartIndex uart);
     int (*is_data_available)(UartIndex uart);
+    void (*send_bytes_dma)(UartIndex uart, uint8_t* data, uint16_t size);
 } hal_uart_ops_t;
 
 extern const hal_uart_ops_t hal_uart;
