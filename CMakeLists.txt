@@ -5,11 +5,9 @@
 
 ############################################ ↓ ↓ ↓ 下方可以修改 ↓ ↓ ↓ ############################################
 
-# 注意：修改此文件后，需运行Clean.bat才能编译！
-
 # 1.工程名
 
-set(PROJECT_NAME xxxProject)
+set(PROJECT_NAME Generic-Bare-Metal-MCU-Framework)
 
 # 2.优化等级
 #   [-O0]：不优化 
@@ -60,8 +58,8 @@ include_directories(
 
         Frame/02_hal
         Frame/03_chip_driver
-        Frame/04_device_cpp
-        Frame/05_scheduler_cpp
+        Frame/04_utils_cpp
+        Frame/05_device_cpp
 )
 
 #编译环境版本设置
@@ -103,8 +101,9 @@ file(GLOB_RECURSE SOURCES
         "Frame/01_mcu/Libraries/STM32F4xx_StdPeriph_Driver/src/*.c"
         "Frame/02_hal/*.c"
         "Frame/03_chip_driver/*.c"
-        "Frame/04_device_cpp/*.cpp"
-        "Frame/05_scheduler_cpp/*.cpp"
+        "Frame/04_utils_cpp/*.cpp"
+        "Frame/05_device_cpp/*.cpp"
+        
  
         )
 

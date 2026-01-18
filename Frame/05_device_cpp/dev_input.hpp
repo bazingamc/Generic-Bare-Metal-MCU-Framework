@@ -17,7 +17,7 @@ typedef struct
     GpioIndex pin = PIN_END;//检测引脚
     GpioLevel activeLevel = GPIO_LEVEL_HIGH;//有效电平（检测到此电平时认为输入激活）
     uint8_t filterCount = 1;//滤波次数，默认为1（无滤波）
-}InputParam;
+}InputInitParam;
 
 
 /**
@@ -41,7 +41,7 @@ public:
      * @brief 初始化输入设备
      * @param param 输入设备参数
      */
-    void init(InputParam param);
+    void init(InputInitParam param);
     
     /**
      * @brief 检测输入是否处于激活状态
@@ -72,21 +72,19 @@ public:
     * 静态方法
     **********************************************************/
 
-    /**
-     * @brief 输入设备任务处理函数
-     * 需要定期调用以更新所有输入设备的状态
-     */
-    static void inputTask();//循环调用
+
+    static void inputTask();//System::run()中调用
+    static int getObjectCount();//System::run()中调用
 
 private:
     bool isInit;//初始化标志
 
     //用于遍历所有对象
-	static const int MAX_OBJECTS = 30;   // 最大对象数量
+	static const int MAX_OBJECTS = 50;   // 最大对象数量
 	static Input* objects[MAX_OBJECTS]; // 静态数组保存对象指针
 	static int objectCount;             // 当前对象数量
 
-    InputParam initParam;//初始化参数
+    InputInitParam initParam;//初始化参数
     InputState state;      // 当前状态
     InputState lastState;  // 上次状态
     

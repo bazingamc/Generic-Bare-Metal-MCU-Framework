@@ -4,7 +4,12 @@
 Input* Input::objects[Input::MAX_OBJECTS] = { nullptr };
 int Input::objectCount = 0;
 
-Input::Input()
+Input::Input() :
+	state(InputState_Inactive), 
+	lastState(InputState_Inactive), 
+	activeCounter(0), 
+	inactiveCounter(0), 
+	currentReading(false)
 {
 	if (objectCount < MAX_OBJECTS) 
 	{
@@ -14,14 +19,6 @@ Input::Input()
 	{
 		// 超过容量可打印警告或处理
 	}
-
-    this->state = InputState_Inactive;
-    this->lastState = InputState_Inactive;
-    
-    // 初始化滤波计数器
-    this->activeCounter = 0;
-    this->inactiveCounter = 0;
-    this->currentReading = false;
 }
 
 Input::~Input()
@@ -39,7 +36,7 @@ Input::~Input()
 	}
 }
 
-void Input::init(InputParam param)
+void Input::init(InputInitParam param)
 {
 	memcpy(&this->initParam, &param, sizeof(param));
 	
@@ -61,6 +58,10 @@ void Input::init(InputParam param)
     this->lastState = this->state;
 }
 
+int Input::getObjectCount()
+{
+    return Input::objectCount;
+}
 
 bool Input::isActive()
 {

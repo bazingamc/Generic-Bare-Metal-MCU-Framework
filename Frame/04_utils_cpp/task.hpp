@@ -45,7 +45,8 @@ public:
 	Task(const char* name, TaskFun fun);
 	~Task();
 
-	void start(TaskParam* param, uint8_t startUserState);
+	void start(uint8_t startUserState = 0);
+	void start(TaskParam* param, uint8_t startUserState = 0);
 	void stop();
 	void success();
 	void fail();
@@ -58,8 +59,9 @@ public:
 	uint8_t getUserState();
 	bool isTimeout(uint32_t ms, WhereToGO failGo);
 
-	//任务调度(在主循环中调用)
-	static void run();
+	//静态方法
+	static void run();//System::run()中调用
+	static int getObjectCount();//System::run()中调用
 
 	//系统时间
 	static uint64_t nowTime;

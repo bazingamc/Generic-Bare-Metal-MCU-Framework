@@ -37,6 +37,16 @@ Task::~Task()
 	}
 }
 
+int Task::getObjectCount()
+{
+    return Task::objectCount;
+}
+
+void Task::start(uint8_t start_userState)
+{
+	this->state = TASK_STATE_START;
+	this->userState = start_userState;
+}
 void Task::start(TaskParam* param, uint8_t start_userState)
 {
 	this->state = TASK_STATE_START;

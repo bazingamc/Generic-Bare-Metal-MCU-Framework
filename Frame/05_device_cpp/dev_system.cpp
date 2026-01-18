@@ -19,8 +19,10 @@ void System::SystickIsrCallback()
  */
 void System::run()
 {
-    Output::outputTask();
-    Input::inputTask();
+    if(Output::getObjectCount())Output::outputTask();
+    if(Input::getObjectCount())Input::inputTask();
+    if(Uart::getObjectCount())Uart::uartTask();
+    if(Task::getObjectCount())Task::run();
 }
 
 /**

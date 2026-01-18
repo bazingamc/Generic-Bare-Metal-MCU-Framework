@@ -16,7 +16,7 @@ typedef struct
     const char* name = "Output dev";//设备名称
     GpioIndex pin = PIN_END;//控制引脚
     GpioLevel validLevel = GPIO_LEVEL_LOW;//有效电平（设备打开时引脚输出的电平）
-}OutputParam;
+}OutputInitParam;
 
 
 /**
@@ -40,7 +40,7 @@ public:
      * @brief 初始化输出设备
      * @param param 输出设备参数
      */
-    void init(OutputParam param);
+    void init(OutputInitParam param);
     
     /**
      * @brief 打开输出设备
@@ -87,21 +87,18 @@ public:
     * 静态方法
     **********************************************************/
 
-    /**
-     * @brief 输出设备任务处理函数
-     * 循环处理所有输出设备的脉冲输出
-     */
-    static void outputTask();//循环调用
+    static void outputTask();//System::run()中调用
+    static int getObjectCount();//System::run()中调用
 
 private:
     bool isInit;//初始化标志
 
     //用于遍历所有对象
-	static const int MAX_OBJECTS = 30;   // 最大对象数量
+	static const int MAX_OBJECTS = 50;   // 最大对象数量
 	static Output* objects[MAX_OBJECTS]; // 静态数组保存对象指针
 	static int objectCount;               // 当前对象数量
 
-    OutputParam initParam;//初始化参数
+    OutputInitParam initParam;//初始化参数
     float duty;//占空比 0 -100
     u32 cycle;//周期ms
     OutState state;

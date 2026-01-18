@@ -3,7 +3,7 @@
 Output* Output::objects[Output::MAX_OBJECTS] = { nullptr };
 int Output::objectCount = 0;
 
-Output::Output()
+Output::Output() : duty(0), cycle(0), state(OutState_Close)
 {
 	if (objectCount < MAX_OBJECTS) 
 	{
@@ -13,10 +13,6 @@ Output::Output()
 	{
 		// 超过容量可打印警告或处理
 	}
-
-	this->duty = 0;
-    this->cycle = 0;
-    
 }
 
 Output::~Output()
@@ -34,7 +30,7 @@ Output::~Output()
 	}
 }
 
-void Output::init(OutputParam param)
+void Output::init(OutputInitParam param)
 {
 	memcpy(&this->initParam, &param, sizeof(param));
     this->duty = 0;
@@ -43,6 +39,10 @@ void Output::init(OutputParam param)
     this->close();
 }
 
+int Output::getObjectCount()
+{
+    return Output::objectCount;
+}
 
 void Output::open()
 {

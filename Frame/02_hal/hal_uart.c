@@ -93,11 +93,16 @@ uint32_t get_uart_gpio_rcc_clock(GpioIndex pin) {
 }
 
 // 配置 UART 的 GPIO 引脚
-void configure_uart_gpio(UartIndex uart) {
+void configure_uart_gpio(UartIndex uart, GpioIndex txPin, GpioIndex rxPin) {
     GpioIndex tx_pin, rx_pin;
     uint32_t gpio_af;
     
     get_uart_gpio_config(uart, &tx_pin, &rx_pin, &gpio_af);
+    if(txPin != PIN_END || rxPin != PIN_END)
+    {
+        tx_pin = txPin;
+        rx_pin = rxPin;
+    }    
     
     // 获取 GPIO 端口和引脚号
     GPIO_TypeDef* tx_port = get_gpio_port(tx_pin);
@@ -131,7 +136,7 @@ void configure_uart_gpio(UartIndex uart) {
     GPIO_PinAFConfig(rx_port, (uint8_t)(rx_pin - (rx_pin / 16) * 16), gpio_af);
 }
 
-static void uart_init(UartIndex uart, uint32_t baudrate) {
+static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIndex rxPin) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
     uint32_t uart_clock = get_uart_rcc_clock(uart);
     
@@ -147,7 +152,7 @@ static void uart_init(UartIndex uart, uint32_t baudrate) {
     }
     
     // 配置 UART 的 GPIO 引脚
-    configure_uart_gpio(uart);
+    configure_uart_gpio(uart, txPin, rxPin);
     
     // 初始化 UART
     USART_InitTypeDef USART_InitStruct;
