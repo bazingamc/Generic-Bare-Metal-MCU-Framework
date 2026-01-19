@@ -75,3 +75,5 @@ private:
 
     uint16_t data_len_;
 };
+
+extern AsciiProtocol default_proto;

@@ -39,11 +39,14 @@ void Uart::uartTask()
         {
             if (obj->protocols_[i]->input(ch))
             {
-                if(obj->msgHandler != nullptr)obj->msgHandler();
+                if(obj->msgHandler != nullptr)obj->msgHandler(obj);
             }
         }
 	}
 
 }
 
-
+void Uart::Send(u16 len, uint8_t* data)
+{
+    hal_uart.send_bytes(this->initParam.uart, len, data);
+}

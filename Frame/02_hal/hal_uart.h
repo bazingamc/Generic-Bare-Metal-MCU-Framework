@@ -16,6 +16,7 @@ typedef enum  // UART编号
 typedef struct {
     void (*init)(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIndex rxPin);
     void (*send_byte)(UartIndex uart, uint8_t data);
+    void (*send_bytes)(UartIndex uart, u16 len, uint8_t* data);
     void (*send_string)(UartIndex uart, const char* str);
     uint8_t (*receive_byte)(UartIndex uart);
     int (*is_data_available)(UartIndex uart);

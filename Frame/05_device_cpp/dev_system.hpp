@@ -1,40 +1,46 @@
 #pragma once
 
+enum class TimeFormat {
+    HH_MM_SS_MS,        // 12:34:56.789
+    YYYY_MM_DD_HH_MM_SS,// 2026-01-19 12:34:56
+    MS_COUNT,           // 毫秒数
+    HHMMSSMS,           // 123456789
+    YYYYMMDDHHMMSS      // 20260119123456
+};
+
+struct TimeInfo
+{
+    uint16_t year = 2026;
+    uint8_t month = 1;
+    uint8_t day = 1;
+    uint8_t hour = 0;
+    uint8_t minute = 0;
+    uint8_t second = 0;
+    uint16_t millisecond = 0;
+};
+
 /**
  * @brief 系统管理类
  * 提供系统级功能，如系统时间、延时等
  */
 class System
 {
-    public:
-        /**
-         * @brief 运行系统任务
-         * 执行所有设备的任务调度
-         */
-        static void run();
+public:
+    static void run();
+    static void init();
 
-        /**
-         * @brief 初始化系统
-         * 初始化DWT和系统滴答定时器
-         */
+    class Time
+    {
+    public:
         static void init();
-        
-        /**
-         * @brief 获取系统时间
-         * @return uint64_t 当前系统时间（毫秒）
-         */
+
+        //获取时间
         static uint64_t getSysTime();
-        
-        /**
-         * @brief 毫秒级延时
-         * @param ms 延时时间（毫秒）
-         */
+        static const char* getSysTime(TimeFormat fmt);
+        static TimeInfo getSysDateTime();
+
+        //阻塞延迟
         static void delayMs(uint32_t ms);
-        
-        /**
-         * @brief 微秒级延时
-         * @param us 延时时间（微秒）
-         */
         static void delayUs(uint32_t us);
 
         /**
@@ -43,40 +49,35 @@ class System
          */
         class TimeMark
         {
-            public:
-                /**
-                 * @brief 构造函数
-                 * 初始化时间标记
-                 */
-                TimeMark();
-                
-                /**
-                 * @brief 析构函数
-                 */
-                ~TimeMark();
-
-                /**
-                 * @brief 插入时间标记
-                 * 更新开始时间
-                 */
-                void insert();
-                
-                /**
-                 * @brief 获取经过的时间
-                 * @return uint32_t 经过的时间（微秒）
-                 */
-                uint32_t get();
-
-            private:
-                uint32_t timeMarkStart;//时间标记开始
+        public:
+            
+            TimeMark();
+            ~TimeMark();
+            void insert();
+            uint32_t get();
+        private:
+            uint32_t timeMarkStart;//时间标记开始
         };
 
-    private:
-        System() = delete;      // 禁止构造
-        ~System() = delete;     // 禁止析构
-
+        private:
+        Time() = delete;      // 禁止构造
+        ~Time() = delete;     // 禁止析构
         static uint64_t sysTime;//系统时间
-        static void SystickIsrCallback();//系统定时器回调函数
+        static TimeInfo timeInfo;//时间信息结构体
+        
+        // 静态缓冲区
+        static char s_bufHHMMSS[16];
+        static char s_bufYYYYMMDD[32];
+        static char s_bufMS[24];
+        static char s_bufHHMMSSMS[16];
+        static char s_bufYYYYMMDDHHMMSS[32];
 
+        static void SystickIsrCallback();//系统定时器回调函数
+    };
     
+private:
+    System() = delete;      // 禁止构造
+    ~System() = delete;     // 禁止析构
+
+
 };

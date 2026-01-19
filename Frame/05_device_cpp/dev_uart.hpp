@@ -1,6 +1,8 @@
 #pragma once
 #include "ascii_protocol.hpp"
 
+class Uart;
+
 typedef struct 
 {
     const char* name = "Uart dev";//设备名称
@@ -8,7 +10,7 @@ typedef struct
     GpioIndex txPin = PIN_END;//使用hal层默认引脚映射
     UartIndex uart = _UART1;
     uint32_t baudrate = 115200; // 波特率
-    void (*msgHandler)(void) = nullptr; // 消息处理回调函数
+    void (*msgHandler)(Uart*) = nullptr; // 消息处理回调函数
 }UartInitParam;
 
 class Uart
@@ -17,6 +19,7 @@ public:
     Uart(size_t rxBufSize, size_t txBufSize, AsciiProtocol* protocols[], uint8_t proto_count);
 
     void Init(UartInitParam param);
+    void Send(u16 len, uint8_t* data);
 
     
 
@@ -43,7 +46,7 @@ private:
     AsciiProtocol** protocols_;
     uint8_t proto_count_;
 
-    void (*msgHandler)(void);
+    void (*msgHandler)(Uart*);
 
     // ISR 中调用
     void onRxChar(uint8_t ch);

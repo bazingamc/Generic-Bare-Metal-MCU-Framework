@@ -235,6 +235,16 @@ static void uart_send_byte(UartIndex uart, uint8_t data) {
     }
 }
 
+static void uart_send_bytes(UartIndex uart, u16 len, uint8_t* data) {
+    if (data == NULL) return;
+
+    for (uint16_t i = 0; i < len; i++)
+    {
+        uart_send_byte(uart, data[i]);
+    }
+    
+}
+
 static void uart_send_string(UartIndex uart, const char* str) {
     if (str == NULL) return;
     
@@ -242,6 +252,8 @@ static void uart_send_string(UartIndex uart, const char* str) {
         uart_send_byte(uart, *str++);
     }
 }
+
+
 
 static uint8_t uart_receive_byte(UartIndex uart) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
@@ -449,8 +461,10 @@ void DMA1_Stream0_IRQHandler(void) {
 const hal_uart_ops_t hal_uart = {
     .init = uart_init,
     .send_byte = uart_send_byte,
+    .send_bytes = uart_send_bytes,
     .send_string = uart_send_string,
     .receive_byte = uart_receive_byte,
     .is_data_available = uart_is_data_available,
     .send_bytes_dma = uart_send_bytes_dma
+    
 };
