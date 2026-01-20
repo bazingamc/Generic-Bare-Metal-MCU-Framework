@@ -1,9 +1,9 @@
 #include "task.hpp"
 
-// 静态成员初始化
+// Static member initialization
 Task* Task::objects[Task::MAX_OBJECTS] = { nullptr };
 int Task::objectCount = 0;
-uint64_t Task::nowTime = 0;
+
 
 Task::Task(const char* name, TaskFun fun)
 {
@@ -17,7 +17,7 @@ Task::Task(const char* name, TaskFun fun)
 	}
 	else 
 	{
-		// 超过容量可打印警告或处理
+		// If capacity exceeded, can print warning or handle
 		//cout << "Warning: Max object limit reached!" << endl;
 	}
 }
@@ -28,7 +28,7 @@ Task::~Task()
 	{
 		if (objects[i] == this) 
 		{
-			// 将最后一个对象替换到当前位置
+			// Replace the current position with the last object
 			objects[i] = objects[objectCount - 1];
 			objects[objectCount - 1] = nullptr;
 			objectCount--;
@@ -99,7 +99,7 @@ void Task::fail()
 void Task::delay(uint32_t ms, WhereToGO successGo)
 {
 	this->delayTime = ms;
-	this->delayStartTime = Task::nowTime;
+	this->delayStartTime = System::Time::getSysTime();
 	this->state = TASK_STATE_DELAY;
 	this->successGo = successGo;
 }
@@ -118,7 +118,7 @@ uint8_t Task::getUserState()
 }
 bool Task::isTimeout(uint32_t ms, WhereToGO failGo)
 {
-	if ((Task::nowTime - this->userStateIntoTime) >= ms)
+	if ((System::Time::getSysTime() - this->userStateIntoTime) >= ms)
 	{
 		this->goTo(failGo);
 		return true;
@@ -152,7 +152,7 @@ void Task::goTo(WhereToGO userState)
 	}
 }
 
-void Task::run()
+void Task::run(uint64_t nowTime)
 {
 	for (uint16_t i = 0; i < Task::objectCount; i++)
 	{
@@ -161,7 +161,7 @@ void Task::run()
 		{
 		case TASK_STATE_START:
 			obj->state = TASK_STATE_RUN;
-			obj->taskStartTime = Task::nowTime;
+			obj->taskStartTime = nowTime;
 			if (obj->father)
 			{
 				LOG("T:%s start, Father:%s\r\n", obj->name, obj->father->name);
@@ -174,14 +174,14 @@ void Task::run()
 		case TASK_STATE_RUN:
 			if (obj->lastUserState != obj->userState)
 			{
-				LOG("T:%s user state: %d -> %d\r\n", obj->name, obj->last_userState, obj->userState);
+				LOG("T:%s user state: %d -> %d\r\n", obj->name, obj->lastUserState, obj->userState);
 				obj->lastUserState = obj->userState;
-				obj->userStateIntoTime = Task::nowTime;
+				obj->userStateIntoTime = nowTime;
 			}
 			obj->fun(obj, &obj->param);
 			break;
 		case TASK_STATE_DELAY:
-			if (Task::nowTime - obj->delayStartTime >= obj->delayTime)
+			if (nowTime - obj->delayStartTime >= obj->delayTime)
 			{
 				obj->state = TASK_STATE_RUN;
 				obj->goTo(obj->successGo);
@@ -212,7 +212,7 @@ void Task::run()
 					obj->goTo(obj->failGo);
 				}
 			}
-			else if (obj->timeout != 0 && (Task::nowTime - obj->userStateIntoTime) >= obj->timeout)
+			else if (obj->timeout != 0 && (nowTime - obj->userStateIntoTime) >= obj->timeout)
 			{
 				LOG("T:%s subtask %s timeout\r\n", obj->name, obj->subtask->name);
 				obj->state = TASK_STATE_RUN;
@@ -220,11 +220,11 @@ void Task::run()
 			}
 			break;
 		case TASK_STATE_SUCCESS:
-			LOG("T:%s finish, time %dms\r\n", obj->name, Task::nowTime - obj->task_start_time);
+			LOG("T:%s finish, time %dms\r\n", obj->name, nowTime - obj->taskStartTime);
 			obj->state = TASK_STATE_IDEL;
 			break;
 		case TASK_STATE_FAIL:
-			LOG("T:%s fail, time %dms\r\n", obj->name, Task::nowTime - obj->task_start_time);
+			LOG("T:%s fail, time %dms\r\n", obj->name, nowTime - obj->taskStartTime);
 			obj->state = TASK_STATE_ERROR;
 			break;
 

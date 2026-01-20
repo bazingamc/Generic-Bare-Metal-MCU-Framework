@@ -5,12 +5,12 @@ class Uart;
 
 typedef struct 
 {
-    const char* name = "Uart dev";//设备名称
-    GpioIndex rxPin = PIN_END;//使用hal层默认引脚映射
-    GpioIndex txPin = PIN_END;//使用hal层默认引脚映射
+    const char* name = "Uart dev";//Device name
+    GpioIndex rxPin = PIN_END;//Use hal layer default pin mapping
+    GpioIndex txPin = PIN_END;//Use hal layer default pin mapping
     UartIndex uart = _UART1;
-    uint32_t baudrate = 115200; // 波特率
-    void (*msgHandler)(Uart*) = nullptr; // 消息处理回调函数
+    uint32_t baudrate = 115200; // Baud rate
+    void (*msgHandler)(Uart*) = nullptr; // Message handling callback function
 }UartInitParam;
 
 class Uart
@@ -24,21 +24,21 @@ public:
     
 
     /**********************************************************
-    * 静态方法
+    * Static methods
     **********************************************************/
 
-    static void uartTask();//System::run()中调用
-    static int getObjectCount();//System::run()中调用
+    static void uartTask();//Called in System::run()
+    static int getObjectCount();//Called in System::run()
 
 
 private:
 
-    //用于遍历所有对象
-	static const int MAX_OBJECTS = 10;   // 最大对象数量
-	static Uart* objects[MAX_OBJECTS]; // 静态数组保存对象指针
-	static int objectCount;               // 当前对象数量
+    //Used to traverse all objects
+	static const int MAX_OBJECTS = 10;   // Maximum object count
+	static Uart* objects[MAX_OBJECTS]; // Static array to store object pointers
+	static int objectCount;               // Current object count
 
-    UartInitParam initParam;//初始化参数
+    UartInitParam initParam;//Initialization parameters
 
     RingBuffer<uint8_t> rxBuffer_;
     RingBuffer<uint8_t> txBuffer_;
@@ -48,6 +48,6 @@ private:
 
     void (*msgHandler)(Uart*);
 
-    // ISR 中调用
+    // Called from ISR
     void onRxChar(uint8_t ch);
 };

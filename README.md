@@ -1,4 +1,4 @@
-# Generic Bare Metal MCU Framework
+# 通用裸机MCU框架
 
 一个通用的裸机MCU基础框架，提供标准化的底层驱动与模块化软件结构，以STM32F4xx系列微控制器为例，可快速搭建MCU开发环境。
 
@@ -21,12 +21,12 @@
 项目采用典型的嵌入式分层架构模式：
 
 ```
-Application Layer       → APP/
-Hardware Abstraction    → Frame/02_hal
-Chip-Specific Drivers   → Frame/03_chip_driver
-Utilities (C++)         → Frame/04_utils_cpp
-Device Management       → Frame/05_device_cpp
-MCU Core & BSP          → Frame/01_mcu
+应用层                → APP/
+硬件抽象层            → Frame/02_hal
+芯片级驱动层          → Frame/03_chip_driver
+C++工具库            → Frame/04_utils_cpp
+设备管理层            → Frame/05_device_cpp
+MCU核心与BSP层       → Frame/01_mcu
 ```
 
 ## 目录结构
@@ -110,28 +110,51 @@ Task t2("t2", Task2);  // 创建任务2
 
 ## 示例代码
 
-项目包含一个简单的LED闪烁示例：
+项目包含LED闪烁、串口初始化、log发送、状态机任务示例：
 
 ```cpp
+
 Output led1;
+// Protocol list
+AsciiProtocol* protos[] = {&default_proto};
+Uart uart1(1024, 1024, protos, 1);
+void APP_Init() 
+{
+    System::init();
+
+    // Program running indicator light
+	OutputInitParam param;
+	param.name = "LED1";
+	param.pin = PH10;
+	param.validLevel = GPIO_LEVEL_LOW;
+	led1.init(param);
+	led1.pulseOutputStart();// Start pulse output, default parameters: period 1000ms, duty cycle 50%
+
+	// UART
+	UartInitParam uartParam;
+	uartParam.name = "UART1";
+	uartParam.uart = _UART1;
+	uartParam.baudrate = 115200;
+	uart1.Init(uartParam);
+
+	// log
+	Logger::RegisterChannel(LOG_CH_UART, &uart1);
+	Logger::SetTimeCallback(System::Time::getSysTime);
+	LOG_INFO(LOG_CH_UART, "hello world !\r\n");
+}
 
 int main(void)
 {
-    System::TimeMark tm;
-    System::init();
+	APP_Init();
 
-    OutputInitParam param;
-    param.name = "LED1";
-    param.pin = PH10;
-    param.validLevel = GPIO_LEVEL_LOW;
-    led1.init(param);
-    led1.pulseOutputStart(); // 开始脉冲输出，默认参数为：周期1000ms，占空比50%
+	t1.start();
 
-    while(1)
-    {
-        System::run();
-    }
+	while(1)
+	{
+		System::run();
+	}
 }
+
 ```
 
 ## 许可证
@@ -142,7 +165,6 @@ int main(void)
 
 欢迎提交Pull Request来改进本框架！对于重大更改，请先开Issue讨论您想要改变的内容。
 
-## 致谢
+## 咨询
+详细咨询、定制开发，联系：57612742@qq.com
 
-- 感谢STMicroelectronics提供的标准外设库
-- 感谢ARM公司提供的CMSIS库

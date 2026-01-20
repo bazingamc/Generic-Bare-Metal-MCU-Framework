@@ -1,6 +1,6 @@
 #include "hal.h"
 
-// 根据 GpioIndex 枚举获取对应的 GPIO 端口
+// Get the corresponding GPIO port according to GpioIndex enumeration
 GPIO_TypeDef* get_gpio_port(GpioIndex pin) {
     if (pin >= PA0 && pin <= PA15) {
         return GPIOA;
@@ -21,10 +21,10 @@ GPIO_TypeDef* get_gpio_port(GpioIndex pin) {
     } else if (pin >= PI0 && pin <= PI15) {
         return GPIOI;
     }
-    return NULL;  // 无效的引脚
+    return NULL;  // Invalid pin
 }
 
-// 根据 GpioIndex 枚举获取对应的引脚号 (0-15)
+// Get the corresponding pin number (0-15) according to GpioIndex enumeration
 uint16_t get_gpio_pin(GpioIndex pin) {
     if (pin >= PA0 && pin <= PA15) {
         return 1 << (pin - PA0);
@@ -45,10 +45,10 @@ uint16_t get_gpio_pin(GpioIndex pin) {
     } else if (pin >= PI0 && pin <= PI15) {
         return 1 << (pin - PI0);
     }
-    return 0;  // 无效的引脚
+    return 0;  // Invalid pin
 }
 
-// 获取对应的 RCC 时钟使能寄存器位
+// Get the corresponding RCC clock enable register bit
 uint32_t get_gpio_rcc_clock(GpioIndex pin) {
     if (pin >= PA0 && pin <= PA15) {
         return RCC_AHB1Periph_GPIOA;
@@ -69,38 +69,38 @@ uint32_t get_gpio_rcc_clock(GpioIndex pin) {
     } else if (pin >= PI0 && pin <= PI15) {
         return RCC_AHB1Periph_GPIOI;
     }
-    return 0;  // 无效的引脚
+    return 0;  // Invalid pin
 }
 
 static void gpio_init(GpioIndex pin, GpioDir dir) {
     GPIO_InitTypeDef GPIO_InitStruct;
     
-    // 获取 GPIO 端口和引脚
+    // Get GPIO port and pin
     GPIO_TypeDef* port = get_gpio_port(pin);
     uint16_t pin_number = get_gpio_pin(pin);
     uint32_t rcc_clock = get_gpio_rcc_clock(pin);
     
     if (port == NULL || pin_number == 0) {
-        return;  // 无效的引脚
+        return;  // Invalid pin
     }
     
-    // 使能对应端口的时钟
+    // Enable clock for the corresponding port
     RCC_AHB1PeriphClockCmd(rcc_clock, ENABLE);
     
-    // 初始化 GPIO 结构体
+    // Initialize GPIO structure
     GPIO_StructInit(&GPIO_InitStruct);
     
-    // 设置引脚
+    // Set pin
     GPIO_InitStruct.GPIO_Pin = pin_number;
     
-    // 根据 mode 参数设置 GPIO 模式
-    // 这里假设 mode 是 STM32 标准外设库的 GPIO 模式
+    // Set GPIO mode according to dir parameter
+    // Here we assume dir is the GPIO mode from STM32 standard peripheral library
     GPIO_InitStruct.GPIO_Mode = (GPIOMode_TypeDef)dir;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;  // 默认速度
-    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;     // 默认推挽输出
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;  // 默认无上下拉
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;  // Default speed
+    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;     // Default push-pull output
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;  // Default no pull-up/pull-down
     
-    // 初始化 GPIO
+    // Initialize GPIO
     GPIO_Init(port, &GPIO_InitStruct);
 }
 
@@ -110,9 +110,9 @@ static void gpio_write(GpioIndex pin, GpioLevel val) {
     
     if (port != NULL && pin_number != 0) {
         if (val) {
-            port->BSRRL = pin_number;  // 设置引脚
+            port->BSRRL = pin_number;  // Set pin
         } else {
-            port->BSRRH = pin_number;  // 清除引脚
+            port->BSRRH = pin_number;  // Clear pin
         }
     }
 }
@@ -124,7 +124,7 @@ static uint8_t gpio_read(GpioIndex pin) {
     if (port != NULL && pin_number != 0) {
         return (uint8_t)((port->IDR & pin_number) != 0);
     }
-    return 0;  // 无效的引脚返回 0
+    return 0;  // Invalid pin returns 0
 }
 
 const hal_gpio_ops_t hal_gpio = {

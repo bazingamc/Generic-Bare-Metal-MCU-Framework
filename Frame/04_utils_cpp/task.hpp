@@ -2,11 +2,11 @@
 #include "dev.hpp" 
 
 
-#define LOG(str, ...)		//printf(str, ##__VA_ARGS__);
+#define LOG(str, ...)		LOG_INFO(LOG_CH_UART, str, ##__VA_ARGS__);
 
 class Task;
 
-typedef enum//任务状态
+typedef enum//Task status
 {
 	TASK_STATE_IDEL,
 	TASK_STATE_RUN,
@@ -30,7 +30,7 @@ typedef void (*TaskFun)(Task* self, TaskParam* param) ;
 
 typedef enum
 {
-	//0-255 跳转userState
+	//0-255 Jump to userState
 
 	WHERE_NEXT = 256,
 	WHERE_NULL,
@@ -59,45 +59,43 @@ public:
 	uint8_t getUserState();
 	bool isTimeout(uint32_t ms, WhereToGO failGo);
 
-	//静态方法
-	static void run();//System::run()中调用
-	static int getObjectCount();//System::run()中调用
+	//Static methods
+	static void run(uint64_t nowTime);//Called in System::run()
+	static int getObjectCount();//Called in System::run()
 
-	//系统时间
-	static uint64_t nowTime;
 
 private:
-	//基本属性
+	//Basic properties
 	const char* name;
 	TaskState state;
 	TaskFun fun;
 	Task* father;
 	TaskParam param;
 	
-	//用于遍历所有任务
-	static const int MAX_OBJECTS = 64;   // 最大对象数量
-	static Task* objects[MAX_OBJECTS]; // 静态数组保存对象指针
-	static int objectCount;               // 当前对象数量
+	//Used to traverse all tasks
+	static const int MAX_OBJECTS = 64;   // Maximum object count
+	static Task* objects[MAX_OBJECTS]; // Static array to store object pointers
+	static int objectCount;               // Current object count
 
-	//状态机
+	//State machine
 	uint8_t userState;
-	uint8_t lastUserState;//上一次状态值
+	uint8_t lastUserState;//Previous state value
 	
-	//任务执行时间
+	//Task execution time
 	uint32_t taskStartTime;
-	uint64_t userStateIntoTime;//进入当前状态的时间
+	uint64_t userStateIntoTime;//Time entering current state
 
-	//延迟
+	//Delay
 	uint32_t delayStartTime;
 	uint32_t delayTime;
 	
-	//去向
+	//Destination
 	uint32_t finishDelay;
 	uint32_t timeout;
 	Task* subtask;
 	WhereToGO successGo;
 	WhereToGO failGo;
 	
-	//私有方法
+	//Private method
 	void goTo(WhereToGO userState);
 };

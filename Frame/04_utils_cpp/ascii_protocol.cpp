@@ -1,6 +1,6 @@
 #include "utils.hpp"
 
-//创建一个串口协议
+// Create a serial protocol
 AsciiProtocol default_proto((ProtocolFormat){"$$",2,2,4,65535,CheckType::CRC16,4,"\r\n",2});
 
 AsciiProtocol::AsciiProtocol(const ProtocolFormat& fmt)

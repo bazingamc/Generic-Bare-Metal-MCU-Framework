@@ -16,7 +16,7 @@ public:
     bool push(const T& item)
     {
         size_t next = (head_ + 1) % size_;
-        if (next == tail_) return false;   // 满
+        if (next == tail_) return false;   // Full
         buffer_[head_] = item;
         head_ = next;
         return true;
@@ -24,7 +24,7 @@ public:
 
     bool pop(T& item)
     {
-        if (head_ == tail_) return false;  // 空
+        if (head_ == tail_) return false;  // Empty
         item = buffer_[tail_];
         tail_ = (tail_ + 1) % size_;
         return true;

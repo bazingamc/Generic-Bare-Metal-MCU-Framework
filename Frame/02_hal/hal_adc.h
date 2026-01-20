@@ -1,14 +1,14 @@
 #pragma once
 
 
-typedef enum  // ADC编号
+typedef enum  // ADC index
 {
     _ADC1,
     _ADC2,
     _ADC3
 } AdcIndex;
 
-typedef enum  // ADC通道
+typedef enum  // ADC channels
 {
     ADC_CH0 = 0,
     ADC_CH1,

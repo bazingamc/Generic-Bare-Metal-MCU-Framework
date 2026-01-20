@@ -28,7 +28,7 @@ class AsciiProtocol
 public:
     explicit AsciiProtocol(const ProtocolFormat& fmt);
 
-    /* ---------- 接收解析 ---------- */
+    /* ---------- Receive Parsing ---------- */
     void reset();
     bool input(char ch);
 
@@ -36,8 +36,8 @@ public:
     const char* data() const { return data_; }
     uint16_t    dataLen() const { return data_len_; }
 
-    /* ---------- 发送组包 ---------- */
-    // 返回生成的帧长度，0 表示失败
+    /* ---------- Send Packing ---------- */
+    // Returns the length of the generated frame, 0 indicates failure
     uint16_t buildFrame(const char* cmd,
                         const char* data,
                         uint16_t    data_len,

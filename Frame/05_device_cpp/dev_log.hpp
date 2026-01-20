@@ -19,26 +19,26 @@ enum LogChannel : uint32_t {
     LOG_CH_USB  = (1u << 2),
 };
 
-// 自定义发送函数
+// Custom send function
 typedef void (*LogSendFunc)(void* ctx, const char* data, size_t len);
 
-// 时间戳回调函数
-typedef void (*LogTimeFunc)(char* buf, size_t len);
+// Timestamp callback function
+typedef char* (*LogTimeFunc)(TimeFormat fmt);
 
 class Logger {
 public:
-    // 注册通道
+    // Register channel
     static void RegisterChannel(uint32_t channelMask, void* obj);
     static void RegisterChannel(uint32_t channelMask, LogSendFunc func, void* ctx = nullptr);
 
-    // 日志级别控制
+    // Log level control
     static void EnableLevel(LogLevel level, bool enable);
     static void SetLevelMask(uint32_t mask);
 
-    // 时间戳回调
+    // Timestamp callback
     static void SetTimeCallback(LogTimeFunc func);
 
-    // 日志输出
+    // Log output
     static void Log(LogLevel level, uint32_t channelMask, const char* fmt, ...);
     static void VLog(LogLevel level, uint32_t channelMask, const char* fmt, va_list args);
 

@@ -1,7 +1,7 @@
 #pragma once
 
 
-typedef enum  // Timer编号
+typedef enum  // Timer index
 {
     _TIM1,
     _TIM2,

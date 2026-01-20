@@ -1,95 +1,95 @@
 #pragma once
 
 /**
- * @brief 输入设备状态枚举
+ * @brief Input device state enumeration
  */
 typedef enum {
-    InputState_Inactive = 0,//未激活
-    InputState_Active,//激活
+    InputState_Inactive = 0,//Not activated
+    InputState_Active,//Activated
 }InputState;
 
 /**
- * @brief 输入设备参数结构体
+ * @brief Input device parameter structure
  */
 typedef struct 
 {
-    const char* name = "Input dev";//设备名称
-    GpioIndex pin = PIN_END;//检测引脚
-    GpioLevel activeLevel = GPIO_LEVEL_HIGH;//有效电平（检测到此电平时认为输入激活）
-    uint8_t filterCount = 1;//滤波次数，默认为1（无滤波）
+    const char* name = "Input dev";//Device name
+    GpioIndex pin = PIN_END;//Detection pin
+    GpioLevel activeLevel = GPIO_LEVEL_HIGH;//Active level (when this level is detected, the input is considered active)
+    uint8_t filterCount = 1;//Filter count, default is 1 (no filtering)
 }InputInitParam;
 
 
 /**
- * @brief 输入设备类
- * 用于管理GPIO输入设备，支持滤波功能
+ * @brief Input device class
+ * Used to manage GPIO input devices, supporting filtering function
  */
 class Input
 {
 public:
     /**
-     * @brief 构造函数
+     * @brief Constructor
      */
     Input();
     
     /**
-     * @brief 析构函数
+     * @brief Destructor
      */
     ~Input();
 
     /**
-     * @brief 初始化输入设备
-     * @param param 输入设备参数
+     * @brief Initialize input device
+     * @param param Input device parameters
      */
     void init(InputInitParam param);
     
     /**
-     * @brief 检测输入是否处于激活状态
-     * @return true 激活状态, false 非激活状态
+     * @brief Check if input is in active state
+     * @return true Active state, false Inactive state
      */
     bool isActive(); 
     
     /**
-     * @brief 检测输入是否处于非激活状态
-     * @return true 非激活状态, false 激活状态
+     * @brief Check if input is in inactive state
+     * @return true Inactive state, false Active state
      */
     bool isInactive(); 
     
     /**
-     * @brief 获取当前状态
-     * @return InputState 当前状态
+     * @brief Get current state
+     * @return InputState Current state
      */
     InputState getState() const;
     
     /**
-     * @brief 获取设备名称
-     * @return const char* 设备名称
+     * @brief Get device name
+     * @return const char* Device name
      */
     const char* getName() const;
 
 
     /**********************************************************
-    * 静态方法
+    * Static methods
     **********************************************************/
 
 
-    static void inputTask();//System::run()中调用
-    static int getObjectCount();//System::run()中调用
+    static void inputTask();//Called in System::run()
+    static int getObjectCount();//Called in System::run()
 
 private:
-    bool isInit;//初始化标志
+    bool isInit;//Initialization flag
 
-    //用于遍历所有对象
-	static const int MAX_OBJECTS = 50;   // 最大对象数量
-	static Input* objects[MAX_OBJECTS]; // 静态数组保存对象指针
-	static int objectCount;             // 当前对象数量
+    //Used to traverse all objects
+	static const int MAX_OBJECTS = 50;   // Maximum object count
+	static Input* objects[MAX_OBJECTS]; // Static array to store object pointers
+	static int objectCount;             // Current object count
 
-    InputInitParam initParam;//初始化参数
-    InputState state;      // 当前状态
-    InputState lastState;  // 上次状态
+    InputInitParam initParam;//Initialization parameters
+    InputState state;      // Current state
+    InputState lastState;  // Previous state
     
-    // 滤波相关变量
-    uint8_t activeCounter;   // 激活状态计数器
-    uint8_t inactiveCounter; // 非激活状态计数器
-    bool currentReading;     // 当前读取的电平状态
+    // Filtering related variables
+    uint8_t activeCounter;   // Active state counter
+    uint8_t inactiveCounter; // Inactive state counter
+    bool currentReading;     // Current level reading state
 };

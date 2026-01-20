@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include "mcu.h"
+#include "hal_clk.h"
 #include "hal_systick.h"
 #include "hal_dwt.h"
 #include "hal_gpio.h"

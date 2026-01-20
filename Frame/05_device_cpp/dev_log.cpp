@@ -15,10 +15,10 @@ static uint32_t s_levelMask =
     (1u << static_cast<uint8_t>(LogLevel::WARN))  |
     (1u << static_cast<uint8_t>(LogLevel::ERROR));
 
-// 时间戳回调
+// Timestamp callback
 static LogTimeFunc s_timeFunc = nullptr;
 
-// 日志级别字符串
+// Log level strings
 static const char* LevelToStr(LogLevel lvl)
 {
     switch(lvl) {
@@ -30,7 +30,7 @@ static const char* LevelToStr(LogLevel lvl)
     }
 }
 
-// 注册通道
+// Register channel
 void Logger::RegisterChannel(uint32_t mask, void* obj)
 {
     for (uint8_t i = 0; i < MAX_LOG_CHANNELS; ++i) {
@@ -51,7 +51,7 @@ void Logger::RegisterChannel(uint32_t mask, LogSendFunc func, void* ctx)
     }
 }
 
-// 日志级别控制
+// Log level control
 void Logger::EnableLevel(LogLevel lvl, bool enable)
 {
     uint32_t bit = 1u << static_cast<uint8_t>(lvl);
@@ -64,13 +64,13 @@ void Logger::SetLevelMask(uint32_t mask)
     s_levelMask = mask;
 }
 
-// 设置时间戳回调
+// Set timestamp callback
 void Logger::SetTimeCallback(LogTimeFunc func)
 {
     s_timeFunc = func;
 }
 
-// 输出日志
+// Output log
 void Logger::Log(LogLevel lvl, uint32_t mask, const char* fmt, ...)
 {
     if ((s_levelMask & (1u << static_cast<uint8_t>(lvl))) == 0)
@@ -86,14 +86,15 @@ void Logger::VLog(LogLevel lvl, uint32_t mask, const char* fmt, va_list args)
 {
     char body[LOG_BUFFER_SIZE];
     char header[LOG_HEADER_SIZE];
-    char timeStr[16] = {0};
+    char timeStr[30] = {0};
 
     int bodyLen = vsnprintf(body, sizeof(body), fmt, args);
     if (bodyLen <= 0) return;
 
-    // 时间戳
+    // Timestamp
     if (s_timeFunc) {
-        s_timeFunc(timeStr, sizeof(timeStr)); // e.g., "12:34:56.789"
+        strncpy(timeStr, s_timeFunc(TimeFormat::HH_MM_SS_MS), sizeof(timeStr) - 1); // e.g., "12:34:56.789"
+        timeStr[sizeof(timeStr) - 1] = '\0'; // Ensure string ends with null terminator
     }
 
     int headerLen = snprintf(header, sizeof(header), "[%s][%s] ", timeStr, LevelToStr(lvl));

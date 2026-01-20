@@ -2,7 +2,7 @@
 
 
 
-// 根据 SpiIndex 枚举获取对应的 SPI 外设
+// Get the corresponding SPI peripheral according to SpiIndex enumeration
 SPI_TypeDef* get_spi_peripheral(SpiIndex spi) {
     switch(spi) {
         case _SPI1: return SPI1;
@@ -15,7 +15,7 @@ SPI_TypeDef* get_spi_peripheral(SpiIndex spi) {
     }
 }
 
-// 获取对应的 RCC 时钟使能寄存器位
+// Get the corresponding RCC clock enable register bit
 uint32_t get_spi_rcc_clock(SpiIndex spi) {
     switch(spi) {
         case _SPI1: return RCC_APB2Periph_SPI1;
@@ -28,7 +28,7 @@ uint32_t get_spi_rcc_clock(SpiIndex spi) {
     }
 }
 
-// 获取对应的 GPIO 引脚配置（根据 SPI 编号确定 SCK/MISO/MOSI 引脚）
+// Get the corresponding GPIO pin configuration (determine SCK/MISO/MOSI pins according to SPI number)
 void get_spi_gpio_config(SpiIndex spi, GpioIndex* sck_pin, GpioIndex* miso_pin, GpioIndex* mosi_pin, uint32_t* gpio_af) {
     switch(spi) {
         case _SPI1:
@@ -68,7 +68,7 @@ void get_spi_gpio_config(SpiIndex spi, GpioIndex* sck_pin, GpioIndex* miso_pin, 
             *gpio_af = GPIO_AF_SPI6;
             break;
         default:
-            *sck_pin = PA0;    // 无效值
+            *sck_pin = PA0;    // Invalid value
             *miso_pin = PA0;
             *mosi_pin = PA0;
             *gpio_af = 0;
@@ -76,7 +76,7 @@ void get_spi_gpio_config(SpiIndex spi, GpioIndex* sck_pin, GpioIndex* miso_pin, 
     }
 }
 
-// 获取对应 GPIO 的 RCC 时钟
+// Get the RCC clock for the corresponding GPIO
 uint32_t get_spi_gpio_rcc_clock(GpioIndex pin) {
     if (pin >= PA0 && pin <= PA15) {
         return RCC_AHB1Periph_GPIOA;
@@ -100,14 +100,14 @@ uint32_t get_spi_gpio_rcc_clock(GpioIndex pin) {
     return 0;
 }
 
-// 配置 SPI 的 GPIO 引脚
+// Configure GPIO pins for SPI
 void configure_spi_gpio(SpiIndex spi) {
     GpioIndex sck_pin, miso_pin, mosi_pin;
     uint32_t gpio_af;
     
     get_spi_gpio_config(spi, &sck_pin, &miso_pin, &mosi_pin, &gpio_af);
     
-    // 获取 GPIO 端口和引脚号
+    // Get GPIO port and pin numbers
     GPIO_TypeDef* sck_port = get_gpio_port(sck_pin);
     uint16_t sck_pin_num = get_gpio_pin(sck_pin);
     GPIO_TypeDef* miso_port = get_gpio_port(miso_pin);
@@ -115,19 +115,19 @@ void configure_spi_gpio(SpiIndex spi) {
     GPIO_TypeDef* mosi_port = get_gpio_port(mosi_pin);
     uint16_t mosi_pin_num = get_gpio_pin(mosi_pin);
     
-    // 使能 GPIO 端口时钟
+    // Enable GPIO port clocks
     RCC_AHB1PeriphClockCmd(get_spi_gpio_rcc_clock(sck_pin), ENABLE);
     RCC_AHB1PeriphClockCmd(get_spi_gpio_rcc_clock(miso_pin), ENABLE);
     RCC_AHB1PeriphClockCmd(get_spi_gpio_rcc_clock(mosi_pin), ENABLE);
     
-    // 配置 SCK, MISO, MOSI 引脚为复用功能
+    // Configure SCK, MISO, MOSI pins as alternate function
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_StructInit(&GPIO_InitStruct);
     GPIO_InitStruct.GPIO_Pin = sck_pin_num;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_DOWN;  // SPI引脚下拉
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_DOWN;  // SPI pins pull-down
     GPIO_Init(sck_port, &GPIO_InitStruct);
     
     GPIO_InitStruct.GPIO_Pin = miso_pin_num;
@@ -136,7 +136,7 @@ void configure_spi_gpio(SpiIndex spi) {
     GPIO_InitStruct.GPIO_Pin = mosi_pin_num;
     GPIO_Init(mosi_port, &GPIO_InitStruct);
     
-    // 连接 GPIO 引脚到 SPI 外设
+    // Connect GPIO pins to SPI peripheral
     GPIO_PinAFConfig(sck_port, (uint8_t)(sck_pin - (sck_pin / 16) * 16), gpio_af);
     GPIO_PinAFConfig(miso_port, (uint8_t)(miso_pin - (miso_pin / 16) * 16), gpio_af);
     GPIO_PinAFConfig(mosi_port, (uint8_t)(mosi_pin - (mosi_pin / 16) * 16), gpio_af);
@@ -147,27 +147,27 @@ static void spi_init(SpiIndex spi, SpiMode mode, SpiDirection direction, SpiData
     uint32_t spi_clock = get_spi_rcc_clock(spi);
     
     if (spi_dev == NULL) {
-        return;  // 无效的 SPI
+        return;  // Invalid SPI
     }
     
-    // 使能 SPI 时钟
+    // Enable SPI clock
     if (spi == _SPI1 || spi == _SPI4 || spi == _SPI5 || spi == _SPI6) {
         RCC_APB2PeriphClockCmd(spi_clock, ENABLE);
     } else {
         RCC_APB1PeriphClockCmd(spi_clock, ENABLE);
     }
     
-    // 配置 SPI 的 GPIO 引脚
+    // Configure GPIO pins for SPI
     configure_spi_gpio(spi);
     
-    // 初始化 SPI
+    // Initialize SPI
     SPI_InitTypeDef SPI_InitStruct;
     SPI_StructInit(&SPI_InitStruct);
     
-    // 设置 SPI 模式 (Master/Slave)
+    // Set SPI mode (Master/Slave)
     SPI_InitStruct.SPI_Mode = (mode == SPI_MODE_MASTER) ? SPI_Mode_Master : SPI_Mode_Slave;
     
-    // 设置 SPI 方向
+    // Set SPI direction
     switch(direction) {
         case SPI_DIRECTION_2LINES_FULLDUPLEX:
             SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
@@ -183,29 +183,29 @@ static void spi_init(SpiIndex spi, SpiMode mode, SpiDirection direction, SpiData
             break;
     }
     
-    // 设置数据大小
+    // Set data size
     SPI_InitStruct.SPI_DataSize = (dataSize == SPI_DATASIZE_8BIT) ? SPI_DataSize_8b : SPI_DataSize_16b;
     
-    // 设置时钟极性和相位 (CPOL=0, CPHA=0 - Mode 0)
+    // Set clock polarity and phase (CPOL=0, CPHA=0 - Mode 0)
     SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;
     SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;
     
-    // 设置软件NSS管理
+    // Set software NSS management
     SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;
     
-    // 设置波特率预分频 (假设系统时钟为84MHz，分频后约为21MHz)
+    // Set baud rate prescaler (assuming system clock is 84MHz, results in ~21MHz after division)
     SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
     
-    // 设置第一个时钟边沿是数据捕获还是时钟输出
+    // Set whether the first clock edge captures or outputs data
     SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
     
-    // 设置 CRC 计算关闭
+    // Set CRC calculation off
     SPI_InitStruct.SPI_CRCPolynomial = 7;
     
-    // 初始化 SPI
+    // Initialize SPI
     SPI_Init(spi_dev, &SPI_InitStruct);
     
-    // 使能 SPI
+    // Enable SPI
     SPI_Cmd(spi_dev, ENABLE);
 }
 
@@ -213,13 +213,13 @@ static void spi_send_byte(SpiIndex spi, uint8_t data) {
     SPI_TypeDef* spi_dev = get_spi_peripheral(spi);
     
     if (spi_dev != NULL) {
-        // 等待发送缓冲区为空
+        // Wait until transmit buffer is empty
         while(SPI_I2S_GetFlagStatus(spi_dev, SPI_I2S_FLAG_TXE) == RESET);
         
-        // 发送数据
+        // Send data
         SPI_I2S_SendData(spi_dev, data);
         
-        // 等待发送完成
+        // Wait for transmission to complete
         while(SPI_I2S_GetFlagStatus(spi_dev, SPI_I2S_FLAG_TXE) == RESET);
     }
 }
@@ -228,14 +228,14 @@ static uint8_t spi_receive_byte(SpiIndex spi) {
     SPI_TypeDef* spi_dev = get_spi_peripheral(spi);
     
     if (spi_dev != NULL) {
-        // 等待接收缓冲区非空
+        // Wait until receive buffer is not empty
         while(SPI_I2S_GetFlagStatus(spi_dev, SPI_I2S_FLAG_RXNE) == RESET);
         
-        // 读取数据
+        // Read data
         return (uint8_t)SPI_I2S_ReceiveData(spi_dev);
     }
     
-    return 0;  // 无效的 SPI 返回 0
+    return 0;  // Invalid SPI returns 0
 }
 
 static void spi_send_data(SpiIndex spi, uint8_t* data, uint16_t size) {

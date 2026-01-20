@@ -1,15 +1,15 @@
 #include "hal.h"
 
-// 添加DMA相关变量和结构体定义
-// DMA传输状态结构体
+// Add DMA related variables and structure definitions
+// DMA transfer status structure
 typedef struct {
-    volatile bool is_busy;  // DMA传输忙标志
-    DMA_Stream_TypeDef* dma_stream;  // 对应的DMA流
-    uint32_t dma_channel;  // 对应的DMA通道
-    IRQn_Type dma_irqn;  // 对应的DMA中断号
+    volatile bool is_busy;  // DMA transfer busy flag
+    DMA_Stream_TypeDef* dma_stream;  // Corresponding DMA stream
+    uint32_t dma_channel;  // Corresponding DMA channel
+    IRQn_Type dma_irqn;  // Corresponding DMA interrupt number
 } uart_dma_config_t;
 
-// 为每个UART分配DMA资源
+// Allocate DMA resources for each UART
 static uart_dma_config_t uart_dma_configs[] = {
     [_UART1] = { .is_busy = false, .dma_stream = DMA1_Stream7, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream7_IRQn },
     [_UART2] = { .is_busy = false, .dma_stream = DMA1_Stream6, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream6_IRQn },
@@ -21,7 +21,7 @@ static uart_dma_config_t uart_dma_configs[] = {
     [_UART8] = { .is_busy = false, .dma_stream = DMA1_Stream0, .dma_channel = DMA_Channel_5, .dma_irqn = DMA1_Stream0_IRQn }
 };
 
-// 根据 UartIndex 枚举获取对应的 USART/UART 外设
+// Get the corresponding USART/UART peripheral according to UartIndex enumeration
 USART_TypeDef* get_uart_peripheral(UartIndex uart) {
     switch(uart) {
         case _UART1: return USART1;
@@ -36,7 +36,7 @@ USART_TypeDef* get_uart_peripheral(UartIndex uart) {
     }
 }
 
-// 获取对应的 DMA请求
+// Get the corresponding DMA request
 uint32_t get_uart_dma_request(UartIndex uart) {
     switch(uart) {
         case _UART1: return USART_DMAReq_Tx;
@@ -51,7 +51,7 @@ uint32_t get_uart_dma_request(UartIndex uart) {
     }
 }
 
-// 获取对应的 RCC 时钟使能寄存器位
+// Get the corresponding RCC clock enable register bit
 uint32_t get_uart_rcc_clock(UartIndex uart) {
     switch(uart) {
         case _UART1: return RCC_APB2Periph_USART1;
@@ -66,7 +66,7 @@ uint32_t get_uart_rcc_clock(UartIndex uart) {
     }
 }
 
-// 获取对应的 GPIO 引脚配置（根据 UART 编号确定 TX/RX 引脚）
+// Get the corresponding GPIO pin configuration (determine TX/RX pins according to UART number)
 void get_uart_gpio_config(UartIndex uart, GpioIndex* tx_pin, GpioIndex* rx_pin, uint32_t* gpio_af) {
     switch(uart) {
         case _UART1:
@@ -110,14 +110,14 @@ void get_uart_gpio_config(UartIndex uart, GpioIndex* tx_pin, GpioIndex* rx_pin, 
             *gpio_af = GPIO_AF_UART8;
             break;
         default:
-            *tx_pin = PA0;   // 无效值
+            *tx_pin = PA0;   // Invalid value
             *rx_pin = PA0;
             *gpio_af = 0;
             break;
     }
 }
 
-// 获取对应 GPIO 的 RCC 时钟
+// Get the RCC clock for the corresponding GPIO
 uint32_t get_uart_gpio_rcc_clock(GpioIndex pin) {
     if (pin >= PA0 && pin <= PA15) {
         return RCC_AHB1Periph_GPIOA;
@@ -141,7 +141,7 @@ uint32_t get_uart_gpio_rcc_clock(GpioIndex pin) {
     return 0;
 }
 
-// 配置 UART 的 GPIO 引脚
+// Configure GPIO pins for UART
 void configure_uart_gpio(UartIndex uart, GpioIndex txPin, GpioIndex rxPin) {
     GpioIndex tx_pin, rx_pin;
     uint32_t gpio_af;
@@ -153,34 +153,34 @@ void configure_uart_gpio(UartIndex uart, GpioIndex txPin, GpioIndex rxPin) {
         rx_pin = rxPin;
     }    
     
-    // 获取 GPIO 端口和引脚号
+    // Get GPIO port and pin numbers
     GPIO_TypeDef* tx_port = get_gpio_port(tx_pin);
     uint16_t tx_pin_num = get_gpio_pin(tx_pin);
     GPIO_TypeDef* rx_port = get_gpio_port(rx_pin);
     uint16_t rx_pin_num = get_gpio_pin(rx_pin);
     
-    // 使能 GPIO 端口时钟
+    // Enable GPIO port clocks
     RCC_AHB1PeriphClockCmd(get_uart_gpio_rcc_clock(tx_pin), ENABLE);
-    if (tx_port != rx_port) {  // 如果TX和RX在不同端口，也要使能RX端口时钟
+    if (tx_port != rx_port) {  // If TX and RX are on different ports, also enable RX port clock
         RCC_AHB1PeriphClockCmd(get_uart_gpio_rcc_clock(rx_pin), ENABLE);
     }
     
-    // 配置 TX 引脚为复用功能
+    // Configure TX pin as alternate function
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_StructInit(&GPIO_InitStruct);
     GPIO_InitStruct.GPIO_Pin = tx_pin_num;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // TX 引脚上拉
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // TX pin pull-up
     GPIO_Init(tx_port, &GPIO_InitStruct);
     
-    // 配置 RX 引脚为复用功能
+    // Configure RX pin as alternate function
     GPIO_InitStruct.GPIO_Pin = rx_pin_num;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // RX 引脚上拉
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;  // RX pin pull-up
     GPIO_Init(rx_port, &GPIO_InitStruct);
     
-    // 连接 GPIO 引脚到 UART 外设
+    // Connect GPIO pins to UART peripheral
     GPIO_PinAFConfig(tx_port, (uint8_t)(tx_pin - (tx_pin / 16) * 16), gpio_af);
     GPIO_PinAFConfig(rx_port, (uint8_t)(rx_pin - (rx_pin / 16) * 16), gpio_af);
 }
@@ -190,20 +190,20 @@ static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIn
     uint32_t uart_clock = get_uart_rcc_clock(uart);
     
     if (usart == NULL) {
-        return;  // 无效的 UART
+        return;  // Invalid UART
     }
     
-    // 使能 UART 时钟
+    // Enable UART clock
     if (uart == _UART1 || uart == _UART6) {
         RCC_APB2PeriphClockCmd(uart_clock, ENABLE);
     } else {
         RCC_APB1PeriphClockCmd(uart_clock, ENABLE);
     }
     
-    // 配置 UART 的 GPIO 引脚
+    // Configure GPIO pins for UART
     configure_uart_gpio(uart, txPin, rxPin);
     
-    // 初始化 UART
+    // Initialize UART
     USART_InitTypeDef USART_InitStruct;
     USART_StructInit(&USART_InitStruct);
     
@@ -216,7 +216,7 @@ static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIn
     
     USART_Init(usart, &USART_InitStruct);
     
-    // 使能 UART
+    // Enable UART
     USART_Cmd(usart, ENABLE);
 }
 
@@ -224,13 +224,13 @@ static void uart_send_byte(UartIndex uart, uint8_t data) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
     
     if (usart != NULL) {
-        // 等待发送数据寄存器空
+        // Wait until transmit data register is empty
         while(USART_GetFlagStatus(usart, USART_FLAG_TXE) == RESET);
         
-        // 发送数据
+        // Send data
         USART_SendData(usart, data);
         
-        // 等待发送完成
+        // Wait for transmission to complete
         while(USART_GetFlagStatus(usart, USART_FLAG_TC) == RESET);
     }
 }
@@ -259,14 +259,14 @@ static uint8_t uart_receive_byte(UartIndex uart) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
     
     if (usart != NULL) {
-        // 等待接收数据寄存器非空
+        // Wait until receive data register is not empty
         while(USART_GetFlagStatus(usart, USART_FLAG_RXNE) == RESET);
         
-        // 读取数据
+        // Read data
         return (uint8_t)USART_ReceiveData(usart);
     }
     
-    return 0;  // 无效的 UART 返回 0
+    return 0;  // Invalid UART returns 0
 }
 
 static int uart_is_data_available(UartIndex uart) {
@@ -276,89 +276,89 @@ static int uart_is_data_available(UartIndex uart) {
         return (USART_GetFlagStatus(usart, USART_FLAG_RXNE) == SET) ? 1 : 0;
     }
     
-    return 0;  // 无效的 UART 返回 0
+    return 0;  // Invalid UART returns 0
 }
 
-// DMA发送完成回调函数
+// DMA send completion callback function
 static void uart_dma_tx_complete_callback(UartIndex uart) {
     uart_dma_configs[uart].is_busy = false;
     
-    // 关闭DMA请求
+    // Disable DMA request
     USART_DMACmd(get_uart_peripheral(uart), get_uart_dma_request(uart), DISABLE);
 }
 
-// DMA发送字节数组
+// DMA send byte array
 static void uart_send_bytes_dma(UartIndex uart, uint8_t* data, uint16_t size) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
     uart_dma_config_t* dma_config = &uart_dma_configs[uart];
     
-    // 检查参数有效性
+    // Check parameter validity
     if (usart == NULL || data == NULL || size == 0) {
         return;
     }
     
-    // 检查DMA是否正在被使用
+    // Check if DMA is currently in use
     if (dma_config->is_busy) {
-        // 如果正在使用，则回退到普通发送
+        // If in use, fall back to normal sending
         for (int i = 0; i < size; i++) {
             uart_send_byte(uart, data[i]);
         }
         return;
     }
     
-    // 设置DMA为忙碌状态
+    // Set DMA to busy state
     dma_config->is_busy = true;
     
-    // 使能DMA时钟
+    // Enable DMA clock
     if (dma_config->dma_stream < DMA2_Stream0) {
         RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
     } else {
         RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
     }
     
-    // 复位DMA流
+    // Reset DMA stream
     DMA_DeInit(dma_config->dma_stream);
-    while(DMA_GetCmdStatus(dma_config->dma_stream) != DISABLE);  // 等待DMA流禁用
+    while(DMA_GetCmdStatus(dma_config->dma_stream) != DISABLE);  // Wait for DMA stream to be disabled
     
-    // 配置DMA
+    // Configure DMA
     DMA_InitTypeDef DMA_InitStructure;
     DMA_StructInit(&DMA_InitStructure);
     
     DMA_InitStructure.DMA_Channel = dma_config->dma_channel;
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&usart->DR;  // 外设地址设置为USART的数据寄存器
-    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)data;  // 内存地址设置为要发送的数据
-    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;  // 内存到外设
-    DMA_InitStructure.DMA_BufferSize = size;  // 传输大小
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  // 外设地址不增加
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;  // 内存地址递增
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;  // 外设数据宽度为字节
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;  // 内存数据宽度为字节
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;  // 正常模式
-    DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;  // 中等优先级
-    DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;  // 禁用FIFO
-    DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;  // FIFO阈值
-    DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;  // 内存突发单次传输
-    DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;  // 外设突发单次传输
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&usart->DR;  // Peripheral address set to USART data register
+    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)data;  // Memory address set to data to be sent
+    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;  // Memory to peripheral
+    DMA_InitStructure.DMA_BufferSize = size;  // Transfer size
+    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  // Peripheral address does not increment
+    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;  // Memory address increments
+    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;  // Peripheral data width is byte
+    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;  // Memory data width is byte
+    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;  // Normal mode
+    DMA_InitStructure.DMA_Priority = DMA_Priority_Medium;  // Medium priority
+    DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;  // Disable FIFO
+    DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;  // FIFO threshold
+    DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;  // Memory burst single transfer
+    DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;  // Peripheral burst single transfer
     
     DMA_Init(dma_config->dma_stream, &DMA_InitStructure);
     
-    // 配置DMA中断
-    DMA_ITConfig(dma_config->dma_stream, DMA_IT_TC, ENABLE);  // 使能传输完成中断
+    // Configure DMA interrupt
+    DMA_ITConfig(dma_config->dma_stream, DMA_IT_TC, ENABLE);  // Enable transfer complete interrupt
     
-    // 使能UART的DMA发送请求
+    // Enable UART DMA send request
     USART_DMACmd(usart, get_uart_dma_request(uart), ENABLE);
     
-    // 使能DMA流
+    // Enable DMA stream
     DMA_Cmd(dma_config->dma_stream, ENABLE);
 }
 
-// DMA中断处理函数
+// DMA interrupt handler
 void DMA1_Stream7_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream7, DMA_IT_TCIF7)) {
         DMA_ClearITPendingBit(DMA1_Stream7, DMA_IT_TCIF7);
-        DMA_Cmd(DMA1_Stream7, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream7, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream7) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -371,9 +371,9 @@ void DMA1_Stream7_IRQHandler(void) {
 void DMA1_Stream6_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream6, DMA_IT_TCIF6)) {
         DMA_ClearITPendingBit(DMA1_Stream6, DMA_IT_TCIF6);
-        DMA_Cmd(DMA1_Stream6, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream6, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream6) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -386,9 +386,9 @@ void DMA1_Stream6_IRQHandler(void) {
 void DMA1_Stream3_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream3, DMA_IT_TCIF3)) {
         DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_TCIF3);
-        DMA_Cmd(DMA1_Stream3, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream3, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream3) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -401,9 +401,9 @@ void DMA1_Stream3_IRQHandler(void) {
 void DMA1_Stream4_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream4, DMA_IT_TCIF4)) {
         DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4);
-        DMA_Cmd(DMA1_Stream4, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream4, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream4) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -416,9 +416,9 @@ void DMA1_Stream4_IRQHandler(void) {
 void DMA2_Stream6_IRQHandler(void) {
     if(DMA_GetITStatus(DMA2_Stream6, DMA_IT_TCIF6)) {
         DMA_ClearITPendingBit(DMA2_Stream6, DMA_IT_TCIF6);
-        DMA_Cmd(DMA2_Stream6, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA2_Stream6, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA2_Stream6) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -431,9 +431,9 @@ void DMA2_Stream6_IRQHandler(void) {
 void DMA1_Stream1_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream1, DMA_IT_TCIF1)) {
         DMA_ClearITPendingBit(DMA1_Stream1, DMA_IT_TCIF1);
-        DMA_Cmd(DMA1_Stream1, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream1, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream1) {
                 uart_dma_tx_complete_callback((UartIndex)i);
@@ -446,9 +446,9 @@ void DMA1_Stream1_IRQHandler(void) {
 void DMA1_Stream0_IRQHandler(void) {
     if(DMA_GetITStatus(DMA1_Stream0, DMA_IT_TCIF0)) {
         DMA_ClearITPendingBit(DMA1_Stream0, DMA_IT_TCIF0);
-        DMA_Cmd(DMA1_Stream0, DISABLE);  // 禁用DMA流
+        DMA_Cmd(DMA1_Stream0, DISABLE);  // Disable DMA stream
         
-        // 查找是哪个UART使用的这个DMA流
+        // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA1_Stream0) {
                 uart_dma_tx_complete_callback((UartIndex)i);

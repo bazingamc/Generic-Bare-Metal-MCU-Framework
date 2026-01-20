@@ -1,17 +1,18 @@
-#include "dev.hpp"
+#include "dev.hpp";
 
 
-// 初始化系统时间静态变量
+// Initialize system time static variables
 uint64_t System::Time::sysTime = 0;
 char System::Time::s_bufHHMMSS[16] = {0};
 char System::Time::s_bufYYYYMMDD[32] = {0};
 char System::Time::s_bufMS[24] = {0};
 char System::Time::s_bufHHMMSSMS[16] = {0};
 char System::Time::s_bufYYYYMMDDHHMMSS[32] = {0};
+TimeInfo System::Time::timeInfo = {}; // Define timeInfo static member variable
 
 /**
- * @brief 系统滴答定时器中断回调函数
- * 递增系统时间计数器
+ * @brief System tick timer interrupt callback function
+ * Increment system time counter
  */
 void System::Time::SystickIsrCallback()
 {
@@ -27,8 +28,8 @@ void System::Time::init()
 }
 
 /**
- * @brief 获取系统时间
- * @return uint64_t 当前系统时间（毫秒）
+ * @brief Get system time
+ * @return uint64_t Current system time (milliseconds)
  */
 uint64_t System::Time::getSysTime()
 {
@@ -47,7 +48,7 @@ TimeInfo System::Time::getSysDateTime()
     return timeInfo;
 }
 
-const char* System::Time::getSysTime(TimeFormat fmt)
+char* System::Time::getSysTime(TimeFormat fmt)
 {
     uint64_t ms = sysTime;
 
@@ -84,8 +85,8 @@ const char* System::Time::getSysTime(TimeFormat fmt)
 }
 
 /**
- * @brief 毫秒级延时
- * @param ms 延时时间（毫秒）
+ * @brief Millisecond delay
+ * @param ms Delay time (milliseconds)
  */
 void System::Time::delayMs(uint32_t ms)
 {
@@ -93,8 +94,8 @@ void System::Time::delayMs(uint32_t ms)
 }
 
 /**
- * @brief 微秒级延时
- * @param us 延时时间（微秒）
+ * @brief Microsecond delay
+ * @param us Delay time (microseconds)
  */
 void System::Time::delayUs(uint32_t us)
 {
@@ -107,8 +108,8 @@ void System::Time::delayUs(uint32_t us)
 /* TimeMark */
 
 /**
- * @brief TimeMark构造函数
- * 记录当前CPU周期数作为起始时间
+ * @brief TimeMark constructor
+ * Record current CPU cycle count as start time
  */
 System::Time::TimeMark::TimeMark()
 {
@@ -116,7 +117,7 @@ System::Time::TimeMark::TimeMark()
 }
 
 /**
- * @brief TimeMark析构函数
+ * @brief TimeMark destructor
  */
 System::Time::TimeMark::~TimeMark()
 {
@@ -124,8 +125,8 @@ System::Time::TimeMark::~TimeMark()
 }
 
 /**
- * @brief 插入时间标记
- * 更新开始时间点
+ * @brief Insert time marker
+ * Update start time point
  */
 void System::Time::TimeMark::insert()
 {
@@ -133,8 +134,8 @@ void System::Time::TimeMark::insert()
 }
 
 /**
- * @brief 获取经过的时间
- * @return uint32_t 从起始时间到现在的经过时间（微秒）
+ * @brief Get elapsed time
+ * @return uint32_t Elapsed time from start time to now (microseconds)
  */
 uint32_t System::Time::TimeMark::get()
 {
@@ -144,22 +145,38 @@ uint32_t System::Time::TimeMark::get()
 
 
 /**
- * @brief 初始化系统
- * 初始化DWT和系统滴答定时器
+ * @brief Initialize system
+ * Initialize DWT and system tick timer
  */
 void System::init()
 {
+    SysClockConfig clk_cfg =
+    {
+        .clk_src = SYSCLK_SRC_HSE,
+        .hse_freq = 25000000,
+        .sysclk_freq = 180000000
+    };
+
+    SystemClock_Init(&clk_cfg);
+
     System::Time::init();
 }
 
 /**
- * @brief 运行系统任务
- * 执行输出和输入设备的任务调度
+ * @brief Run system tasks
+ * Execute output and input device task scheduling
  */
 void System::run()
 {
-    if(Output::getObjectCount())Output::outputTask();
-    if(Input::getObjectCount())Input::inputTask();
-    if(Uart::getObjectCount())Uart::uartTask();
-    if(Task::getObjectCount())Task::run();
+    if(Output::getObjectCount())
+        Output::outputTask();
+
+    if(Input::getObjectCount())
+        Input::inputTask();
+
+    if(Uart::getObjectCount())
+        Uart::uartTask();
+
+    if(Task::getObjectCount())
+        Task::run(System::Time::getSysTime());
 }

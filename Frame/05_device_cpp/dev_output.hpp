@@ -1,106 +1,106 @@
 #pragma once
 
 /**
- * @brief 输出设备状态枚举
+ * @brief Output device state enumeration
  */
 typedef enum {
-    OutState_Close = 0,//关闭
-    OutState_Open,//打开
+    OutState_Close = 0,//Closed
+    OutState_Open,//Opened
 }OutState;
 
 /**
- * @brief 输出设备参数结构体
+ * @brief Output device parameter structure
  */
 typedef struct 
 {
-    const char* name = "Output dev";//设备名称
-    GpioIndex pin = PIN_END;//控制引脚
-    GpioLevel validLevel = GPIO_LEVEL_LOW;//有效电平（设备打开时引脚输出的电平）
+    const char* name = "Output dev";//Device name
+    GpioIndex pin = PIN_END;//Control pin
+    GpioLevel validLevel = GPIO_LEVEL_LOW;//Valid level (the level output by the pin when the device is opened)
 }OutputInitParam;
 
 
 /**
- * @brief 输出设备类
- * 用于管理GPIO输出设备
+ * @brief Output device class
+ * Used to manage GPIO output devices
  */
 class Output
 {
 public:
     /**
-     * @brief 构造函数
+     * @brief Constructor
      */
     Output();
     
     /**
-     * @brief 析构函数
+     * @brief Destructor
      */
     ~Output();
 
     /**
-     * @brief 初始化输出设备
-     * @param param 输出设备参数
+     * @brief Initialize output device
+     * @param param Output device parameters
      */
     void init(OutputInitParam param);
     
     /**
-     * @brief 打开输出设备
+     * @brief Open output device
      */
     void open(); 
     
     /**
-     * @brief 关闭输出设备
+     * @brief Close output device
      */
     void close(); 
     
     /**
-     * @brief 启动脉冲输出
-     * @param cycle 周期，默认1000ms
-     * @param duty 占空比，默认50%
+     * @brief Start pulse output
+     * @param cycle Period, default 1000ms
+     * @param duty Duty cycle, default 50%
      */
     void pulseOutputStart(u32 cycle = 1000 , float duty = 50); 
     
     /**
-     * @brief 停止脉冲输出
+     * @brief Stop pulse output
      */
     void pulseOutputStop(); 
     
     /**
-     * @brief 获取设备名称
-     * @return const char* 设备名称
+     * @brief Get device name
+     * @return const char* Device name
      */
     const char* getName() const;
     
     /**
-     * @brief 获取当前状态
-     * @return OutState 当前状态
+     * @brief Get current state
+     * @return OutState Current state
      */
     OutState getState() const;
     
     /**
-     * @brief 获取当前占空比
-     * @return float 占空比数值
+     * @brief Get current duty cycle
+     * @return float Duty cycle value
      */
     float getDuty() const;
 
 
     /**********************************************************
-    * 静态方法
+    * Static methods
     **********************************************************/
 
-    static void outputTask();//System::run()中调用
-    static int getObjectCount();//System::run()中调用
+    static void outputTask();//Called in System::run()
+    static int getObjectCount();//Called in System::run()
 
 private:
-    bool isInit;//初始化标志
+    bool isInit;//Initialization flag
 
-    //用于遍历所有对象
-	static const int MAX_OBJECTS = 50;   // 最大对象数量
-	static Output* objects[MAX_OBJECTS]; // 静态数组保存对象指针
-	static int objectCount;               // 当前对象数量
+    //Used to traverse all objects
+	static const int MAX_OBJECTS = 50;   // Maximum object count
+	static Output* objects[MAX_OBJECTS]; // Static array to store object pointers
+	static int objectCount;               // Current object count
 
-    OutputInitParam initParam;//初始化参数
-    float duty;//占空比 0 -100
-    u32 cycle;//周期ms
+    OutputInitParam initParam;//Initialization parameters
+    float duty;//Duty cycle 0 - 100
+    u32 cycle;//Period in ms
     OutState state;
 
 };

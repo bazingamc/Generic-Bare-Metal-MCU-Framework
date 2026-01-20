@@ -1,7 +1,7 @@
 #pragma once
 
 
-typedef enum  // SPI编号
+typedef enum  // SPI index
 {
     _SPI1,
     _SPI2,

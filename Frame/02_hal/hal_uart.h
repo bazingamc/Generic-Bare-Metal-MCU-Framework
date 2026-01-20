@@ -1,7 +1,7 @@
 #pragma once
 
 
-typedef enum  // UART编号
+typedef enum  // UART index
 {
     _UART1,
     _UART2,

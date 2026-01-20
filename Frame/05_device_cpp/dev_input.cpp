@@ -1,6 +1,6 @@
 #include "dev.hpp"
 
-// 静态成员初始化
+// Static member initialization
 Input* Input::objects[Input::MAX_OBJECTS] = { nullptr };
 int Input::objectCount = 0;
 
@@ -17,7 +17,7 @@ Input::Input() :
 	}
 	else 
 	{
-		// 超过容量可打印警告或处理
+		// If capacity exceeded, print warning or handle
 	}
 }
 
@@ -27,7 +27,7 @@ Input::~Input()
 	{
 		if (objects[i] == this) 
 		{
-			// 将最后一个对象替换到当前位置
+			// Replace the current position with the last object
 			objects[i] = objects[objectCount - 1];
 			objects[objectCount - 1] = nullptr;
 			objectCount--;
@@ -42,18 +42,18 @@ void Input::init(InputInitParam param)
 	
 	hal_gpio.init(this->initParam.pin, GPIO_IN);
     
-    // 初始化滤波计数器
+    // Initialize filter counters
     this->activeCounter = 0;
     this->inactiveCounter = 0;
     
-    // 根据当前状态设置初始状态
+    // Set initial state based on current state
     this->currentReading = ((GpioLevel)hal_gpio.read(this->initParam.pin) == this->initParam.activeLevel);
     if(this->currentReading) {
         this->state = InputState_Active;
-        this->activeCounter = this->initParam.filterCount;  // 立即达到激活阈值
+        this->activeCounter = this->initParam.filterCount;  // Immediately reach activation threshold
     } else {
         this->state = InputState_Inactive;
-        this->inactiveCounter = this->initParam.filterCount;  // 立即达到非激活阈值
+        this->inactiveCounter = this->initParam.filterCount;  // Immediately reach deactivation threshold
     }
     this->lastState = this->state;
 }
@@ -89,38 +89,38 @@ void Input::inputTask()
 	{
 		Input* obj = Input::objects[i];
 		
-		// 读取当前GPIO状态
+		// Read current GPIO state
 		GpioLevel currentLevel = (GpioLevel)hal_gpio.read(obj->initParam.pin);
 		bool detectedActive = (currentLevel == obj->initParam.activeLevel);
 		
-		// 根据检测到的电平更新计数器
+		// Update counter based on detected level
 		if(detectedActive) {
-			// 如果检测到激活电平，增加激活计数，重置非激活计数
+			// If active level is detected, increase active count, reset inactive count
 			if(obj->activeCounter < obj->initParam.filterCount) {
 				obj->activeCounter++;
 			}
 			obj->inactiveCounter = 0;
 		} else {
-			// 如果检测到非激活电平，增加非激活计数，重置激活计数
+			// If inactive level is detected, increase inactive count, reset active count
 			if(obj->inactiveCounter < obj->initParam.filterCount) {
 				obj->inactiveCounter++;
 			}
 			obj->activeCounter = 0;
 		}
 		
-		// 检查是否达到了滤波阈值
+		// Check if filter threshold is reached
 		if(obj->activeCounter >= obj->initParam.filterCount) {
-			// 达到激活阈值，更新状态为激活，并重置计数器
+			// Reached activation threshold, update state to active and reset counters
 			obj->lastState = obj->state;
 			obj->state = InputState_Active;
-			obj->activeCounter = obj->initParam.filterCount;  // 锁定激活计数器到最大值
-			obj->inactiveCounter = 0;  // 重置非激活计数器
+			obj->activeCounter = obj->initParam.filterCount;  // Lock active counter to maximum value
+			obj->inactiveCounter = 0;  // Reset inactive counter
 		} else if(obj->inactiveCounter >= obj->initParam.filterCount) {
-			// 达到非激活阈值，更新状态为非激活，并重置计数器
+			// Reached deactivation threshold, update state to inactive and reset counters
 			obj->lastState = obj->state;
 			obj->state = InputState_Inactive;
-			obj->inactiveCounter = obj->initParam.filterCount;  // 锁定非激活计数器到最大值
-			obj->activeCounter = 0;  // 重置激活计数器
+			obj->inactiveCounter = obj->initParam.filterCount;  // Lock inactive counter to maximum value
+			obj->activeCounter = 0;  // Reset active counter
 		}
 	}
 }

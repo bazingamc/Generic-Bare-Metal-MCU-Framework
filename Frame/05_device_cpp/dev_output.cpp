@@ -1,5 +1,5 @@
 #include "dev.hpp"
-// 静态成员初始化
+// Static member initialization
 Output* Output::objects[Output::MAX_OBJECTS] = { nullptr };
 int Output::objectCount = 0;
 
@@ -11,7 +11,7 @@ Output::Output() : duty(0), cycle(0), state(OutState_Close)
 	}
 	else 
 	{
-		// 超过容量可打印警告或处理
+		// If capacity exceeded, print warning or handle
 	}
 }
 
@@ -21,7 +21,7 @@ Output::~Output()
 	{
 		if (objects[i] == this) 
 		{
-			// 将最后一个对象替换到当前位置
+			// Replace the current position with the last object
 			objects[i] = objects[objectCount - 1];
 			objects[objectCount - 1] = nullptr;
 			objectCount--;
@@ -109,14 +109,14 @@ void Output::outputTask()
 		Output* obj = Output::objects[i];
 		if(obj->cycle)
 		{
-			long long  time;
-			// gst(time);
+			long long  time = System::Time::getSysTime();
+			
 			uint32_t t = time % obj->cycle;
-			if(t < obj->cycle * (obj->duty / 100.0))//有效
+			if(t < obj->cycle * (obj->duty / 100.0))//Valid
 			{
 				obj->open();
 			}
-			else//无效
+			else//Invalid
 			{
 				obj->close();
 			}

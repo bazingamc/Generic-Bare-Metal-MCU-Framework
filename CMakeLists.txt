@@ -27,7 +27,7 @@ set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/Frame/01_mcu/stm32f4_flash.ld)
 
 # 5.全局宏定义（宏定义前面加-D）
 
-add_definitions(-DSTM32F42_43xxx -DUSE_STDPERIPH_DRIVER -DUSE_USB_OTG_HS -DUSE_EMBEDDED_PHY)
+add_definitions(-DSTM32F42_43xxx -DUSE_STDPERIPH_DRIVER -DUSE_USB_OTG_HS -DUSE_EMBEDDED_PHY )
 
 # 6.头文件包含路径（尽量使用相对路径）
 

@@ -1,6 +1,6 @@
 #include "dev.hpp"
 
-// 静态成员初始化
+// Static member initialization
 Uart* Uart::objects[Uart::MAX_OBJECTS] = { nullptr };
 int Uart::objectCount = 0;
 Uart::Uart(size_t rxBufSize, size_t txBufSize, AsciiProtocol* protocols[], uint8_t proto_count)

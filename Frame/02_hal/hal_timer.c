@@ -2,7 +2,7 @@
 
 
 
-// 根据 TimerIndex 枚举获取对应的 TIM 外设
+// Get the corresponding TIM peripheral according to TimerIndex enumeration
 TIM_TypeDef* get_timer_peripheral(TimerIndex timer) {
     switch(timer) {
         case _TIM1: return TIM1;
@@ -23,7 +23,7 @@ TIM_TypeDef* get_timer_peripheral(TimerIndex timer) {
     }
 }
 
-// 获取对应的 RCC 时钟使能寄存器位
+// Get the corresponding RCC clock enable register bit
 uint32_t get_timer_rcc_clock(TimerIndex timer) {
     switch(timer) {
         case _TIM1: return RCC_APB2Periph_TIM1;
@@ -44,7 +44,7 @@ uint32_t get_timer_rcc_clock(TimerIndex timer) {
     }
 }
 
-// 获取对应的中断通道
+// Get the corresponding interrupt channel
 IRQn_Type get_timer_irq_channel(TimerIndex timer) {
     switch(timer) {
         case _TIM1: return TIM1_UP_TIM10_IRQn;
@@ -66,12 +66,12 @@ IRQn_Type get_timer_irq_channel(TimerIndex timer) {
     }
 }
 
-// 存储回调函数的数组
+// Array to store callback functions
 static void (*timer_callbacks[14])(void);
 
 
 
-// Timer中断处理函数
+// Timer interrupt handler
 static void timer_handle_interrupt(TimerIndex timer) {
     TIM_TypeDef* tim = get_timer_peripheral(timer);
     
@@ -85,7 +85,7 @@ static void timer_handle_interrupt(TimerIndex timer) {
 
 
 
-// Timer1-7中断处理函数
+// Timer1-7 interrupt handlers
 void TIM1_UP_TIM10_IRQHandler(void) {
     timer_handle_interrupt(_TIM1);
 }
@@ -114,7 +114,7 @@ void TIM7_IRQHandler(void) {
     timer_handle_interrupt(_TIM7);
 }
 
-// Timer8中断处理函数
+// Timer8 interrupt handlers
 void TIM8_UP_TIM13_IRQHandler(void) {
     timer_handle_interrupt(_TIM8);
 }
@@ -142,17 +142,17 @@ static void timer_init(TimerIndex timer, uint32_t period, uint32_t prescaler) {
     IRQn_Type irq_channel = get_timer_irq_channel(timer);
     
     if (tim == NULL) {
-        return;  // 无效的 Timer
+        return;  // Invalid Timer
     }
     
-    // 使能 Timer 时钟
+    // Enable Timer clock
     if (timer <= _TIM7 || timer >= _TIM12) {
         RCC_APB1PeriphClockCmd(tim_clock, ENABLE);
     } else {
         RCC_APB2PeriphClockCmd(tim_clock, ENABLE);
     }
     
-    // 初始化 Timer
+    // Initialize Timer
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct;
     TIM_TimeBaseStructInit(&TIM_TimeBaseInitStruct);
     
@@ -163,13 +163,13 @@ static void timer_init(TimerIndex timer, uint32_t period, uint32_t prescaler) {
     
     TIM_TimeBaseInit(tim, &TIM_TimeBaseInitStruct);
     
-    // 清除更新中断标志
+    // Clear update interrupt flag
     TIM_ClearITPendingBit(tim, TIM_IT_Update);
     
-    // 使能更新中断
+    // Enable update interrupt
     TIM_ITConfig(tim, TIM_IT_Update, ENABLE);
     
-    // 设置中断优先级
+    // Set interrupt priority
     NVIC_InitTypeDef NVIC_InitStructure;
     NVIC_InitStructure.NVIC_IRQChannel = irq_channel;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
@@ -177,7 +177,7 @@ static void timer_init(TimerIndex timer, uint32_t period, uint32_t prescaler) {
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
     
-    // 存储回调函数为空
+    // Initialize callback function to NULL
     timer_callbacks[timer] = NULL;
 }
 

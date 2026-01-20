@@ -1,7 +1,7 @@
 #pragma once
 
 
-typedef enum  // CAN编号
+typedef enum  // CAN index
 {
     _CAN1,
     _CAN2

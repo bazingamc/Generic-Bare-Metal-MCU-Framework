@@ -3,9 +3,9 @@
 
 
 
-//创建任务（推荐使用全局对象）
-Task t1("t1", Task1);//创建任务1
-Task t2("t2", Task2);//创建任务2
+// Create tasks (recommended to use global objects)
+Task t1("t1", Task1);// Create task 1
+Task t2("t2", Task2);// Create task 2
 
 
 void Task1(Task* self, TaskParam* param)
@@ -13,16 +13,17 @@ void Task1(Task* self, TaskParam* param)
 	switch (self->getUserState())
 	{
 	case 0:
-		self->transitionToNextState();//跳转到下一个状态
+		self->transitionToNextState();// Transition to next state
 		break;
 	case 1:
-		self->delay(2000, WHERE_NEXT);//延迟2秒后跳转到下一个状态
+		self->delay(2000, WHERE_NEXT);// Delay for 2 seconds then transition to next state
 		break;
 	case 2:
-		self->subtaskStart(&t2, param, 0, WHERE_NEXT, WHERE_FAIL);//启动子任务t2，成功后跳转到下一个状态，失败后跳转到失败状态
+		// Start subtask t2, transition to next state on success, failure state on failure
+		self->subtaskStart(&t2, param, 0, WHERE_NEXT, WHERE_FAIL);
 		break;
 	case 3:
-		self->userStateChange(0);//回到初始状态，重新开始
+		self->userStateChange(0);// Return to initial state and restart
 
 	default:
 		break;
