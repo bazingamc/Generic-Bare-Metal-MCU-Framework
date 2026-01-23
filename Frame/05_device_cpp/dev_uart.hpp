@@ -20,6 +20,7 @@ public:
 
     void Init(UartInitParam param);
     void Send(u16 len, uint8_t* data);
+    void Send(AsciiProtocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data);
 
     
 

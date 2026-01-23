@@ -50,3 +50,13 @@ void Uart::Send(u16 len, uint8_t* data)
 {
     hal_uart.send_bytes(this->initParam.uart, len, data);
 }
+
+void Uart::Send(AsciiProtocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data)
+{
+    char frame[512];
+    uint16_t frame_len = protocol->buildFrame((const char*)cmd, (const char*)data, len, frame, sizeof(frame));
+    if (frame_len > 0)
+    {
+        this->Send(frame_len, (uint8_t*)frame);
+    }
+}

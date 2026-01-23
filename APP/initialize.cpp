@@ -1,6 +1,7 @@
 #include "APP.hpp"
 
 Output led1;
+Output beep;
 // Protocol list
 AsciiProtocol* protos[] = {&default_proto};
 Uart uart1(1024, 1024, protos, 1);
@@ -8,23 +9,20 @@ void APP_Init()
 {
     System::init();
 
-    // Program running indicator light
-	OutputInitParam param;
-	param.name = "LED1";
-	param.pin = PH10;
-	param.validLevel = GPIO_LEVEL_LOW;
-	led1.init(param);
+	led1.init((OutputInitParam){"LED1", PH11, GPIO_LEVEL_LOW});
 	led1.pulseOutputStart();// Start pulse output, default parameters: period 1000ms, duty cycle 50%
 
-	// UART
-	UartInitParam uartParam;
-	uartParam.name = "UART1";
-	uartParam.uart = _UART1;
-	uartParam.baudrate = 115200;
-	uart1.Init(uartParam);
+	beep.init((OutputInitParam){"BEEP", PI11, GPIO_LEVEL_HIGH});
+
+	uart1.Init((UartInitParam){"UART1", PIN_END, PIN_END, _UART1, 115200, nullptr});
 
 	// log
 	Logger::RegisterChannel(LOG_CH_UART, &uart1);
 	Logger::SetTimeCallback(System::Time::getSysTime);
 	LOG_INFO(LOG_CH_UART, "hello world !\r\n");
+
+	beep.open();
+	System::Time::delayMs(100);
+	beep.close();
+
 }
