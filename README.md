@@ -96,11 +96,11 @@ Generic-Bare-Metal-MCU-Framework
 ├── APP/                    # 应用层（用户任务与业务逻辑）
 │
 ├── Frame/
-│   ├── 01_mcu/             # MCU 启动、BSP、链接脚本
+│   ├── 01_mcu/             # MCU 启动、BSP、链接脚本、MCU厂商提供的库函数、寄存器定义等
 │   ├── 02_hal/             # 硬件抽象层（GPIO, UART, SPI, Timer...）
 │   ├── 03_chip_driver/     # 外部芯片或复杂器件驱动
-│   ├── 04_utils_cpp/       # 工具库（RingBuffer, Time, Protocol 等）
-│   └── 05_device_cpp/      # 设备模型与系统服务（Device, Logger, Task）
+│   ├── 04_utils_cpp/       # 工具库（RingBuffer, Task, Protocol 等）
+│   └── 05_device_cpp/      # 设备模型与系统服务（Device, Logger）
 │
 ├── main/                   # 系统入口与初始化流程
 │
@@ -111,7 +111,7 @@ Generic-Bare-Metal-MCU-Framework
 依赖关系遵循自下而上原则：
 
 ```
-MCU -> HAL -> Utils / Device -> APP
+MCU -> HAL -> ChipDriver -> Utils -> Device -> APP
 ```
 
 上层模块不得直接依赖下两层以上的实现细节。
@@ -201,11 +201,9 @@ System 模块是整个框架的"内核服务层"，对上层提供统一的时�
 典型流程：
 
 ```
-Uart uart1;
-UartInitParam param;
-uart1.Init(param);
-
-DeviceManager::Register(&uart1);
+Output led1;
+led1.init((OutputInitParam){"LED1", PH11, GPIO_LEVEL_LOW});
+led1.pulseOutputStart(1000, 50);
 ```
 
 设备初始化阶段完成：
@@ -216,7 +214,7 @@ DeviceManager::Register(&uart1);
 
 ### 4.5 任务系统启动
 
-任务模型位于 Device/Service 层，提供：
+任务模型位于 utils 层，提供：
 
 - 任务对象封装
 - 状态机式运行模型
@@ -248,9 +246,7 @@ System::Run() 内部通常执行：
 - 轮询已注册任务
 - 判断任务状态与时间条件
 - 调用就绪任务回调
-- 处理协议解析、缓冲区收发
-- 刷新软件定时器
-- 执行低优先级后台服务
+- 等待子任务运行完成
 
 该模型具有以下特点：
 
@@ -281,29 +277,33 @@ System::Run() 内部通常执行：
 典型 Task 定义形式：
 
 ```
-void Task1Entry(Task& task)
+void Task1(Task* self, TaskParam* param)
 {
-    switch (task.state())
-    {
-    case 0:
-        // 初始化状态
-        task.delay(100);
-        task.nextState(1);
-        break;
+	switch (self->getUserState())
+	{
+	case 0:
+		self->transitionToNextState();// Transition to next state
+		break;
+	case 1:
+		self->delay(2000, WHERE_NEXT);// Delay for 2 seconds then transition to next state
+		break;
+	case 2:
+		// Start subtask t2, transition to next state on success, failure state on failure
+		self->subtaskStart(&t2, param, 0, WHERE_NEXT, WHERE_FAIL);
+		break;
+	case 3:
+		self->userStateChange(0);// Return to initial state and restart
 
-    case 1:
-        // 周期执行状态
-        DoSomething();
-        task.delay(10);
-        break;
-    }
+	default:
+		break;
+	}
 }
 ```
 
 调度特性：
 
 - delay(ms)：非阻塞延时
-- nextState(n)：状态迁移
+- userStateChange(n)：状态迁移
 - 支持一次性任务与周期性任务
 
 ### 5.3 与 RTOS 的关系
@@ -320,7 +320,9 @@ void Task1Entry(Task& task)
 
 ### 6.1 01_mcu —— MCU 支持层（Startup & BSP）
 
-该层完全与具体芯片相关，负责把"芯片"抽象成"可运行 C++ 系统"。
+语言：C
+
+该层完全与具体芯片相关，负责把"芯片"抽象成"可运行 C系统"。
 
 主要包含：
 
@@ -329,7 +331,7 @@ void Task1Entry(Task& task)
 - 时钟系统初始化（HSE / HSI / PLL / Bus 分频）
 - 链接脚本（Flash / RAM 布局）
 - CMSIS 头文件与寄存器定义
-- 系统滴答定时器（SysTick 或 TIM）
+- MCU厂商提供的库函数或寄存器定义
 
 设计原则：
 
@@ -338,13 +340,15 @@ void Task1Entry(Task& task)
 - 不包含设备抽象
 - 为上层提供：中断、时间基准、寄存器访问能力
 
-移植新 MCU 时，通常只需修改本层。
+移植新 MCU 时，需要修改本层。
 
 ### 6.2 02_hal —— 硬件抽象层（HAL）
 
+语言：C
+
 HAL 层的目标是：
 
-用统一的 C++ 接口屏蔽不同 MCU 外设寄存器差异。
+用统一的 C 接口屏蔽不同 MCU 外设寄存器差异。
 
 典型模块：
 
@@ -359,14 +363,11 @@ HAL 层的目标是：
 接口风格示例：
 
 ```
-class HalUart
-{
-public:
-    bool init(const HalUartConfig& cfg);
-    int  write(const uint8_t* buf, uint16_t len);
-    int  read(uint8_t* buf, uint16_t len);
-    void enableRxInterrupt();
-};
+typedef struct {
+    void (*init)(GpioIndex pin, GpioDir dir);
+    void (*write)(GpioIndex pin, GpioLevel val);
+    uint8_t (*read)(GpioIndex pin);
+} hal_gpio_ops_t;
 ```
 
 特点：
@@ -376,11 +377,19 @@ public:
 - 不关心日志、任务、调度
 - 可被多个 Device 复用
 
-### 6.3 04_utils_cpp —— 通用工具库
+移植新 MCU 时，需要修改本层。
+
+### 6.3 03_chip_driver —— 通用工具库
+
+语言：C
+
+该层提供需要MCU驱动的外部芯片驱动代码，如：SDRAM、FLASH、步进电机驱动芯片、高精度AD/DA芯片等，可根据用户实际需求自行添加。
+
+### 6.4 04_utils_cpp —— 通用工具库
 
 该层提供平台无关的基础设施：
 
-#### 6.3.1 RingBuffer（环形缓冲区）
+#### 6.4.1 RingBuffer（环形缓冲区）
 
 用途：
 
@@ -392,9 +401,9 @@ public:
 
 - 支持动态或静态大小
 - 无锁（裸机环境）
-- 支持 peek / pop / push / available
+- 支持 pop / push / empty
 
-#### 6.3.2 Protocol（协议解析框架）
+#### 6.4.2 Protocol（协议解析框架）
 
 如：
 
@@ -410,40 +419,45 @@ public:
 
 与 UART 组合形成完整通信栈。
 
-#### 6.3.3 Time 与 SystemTick
-
-统一提供：
-
-- 毫秒计时
-- 微秒计时（如支持）
-- 超时判断
-- 任务延时基准
-
-### 6.4 05_device_cpp —— 设备与系统服务层（核心）
+### 6.5 05_device_cpp —— 设备与系统服务层（核心）
 
 这是整个框架的"中枢层"，将 HAL、Utils 组织为可用的系统对象。
 
-#### 6.4.1 Device 基类
+#### 6.5.1 System 设备类
 
-所有设备统一继承自：
+System设备类是框架的核心管理类，负责系统级服务的统一管理。
+
+结构关系：
 
 ```
-class Device
-{
-public:
-    virtual bool init(const DeviceInitParam& param) = 0;
-    virtual void poll();      // 轮询处理
-    virtual const char* name();
-};
+System(Device)
+ ├─ run        		(基础功能运行)
+ ├─ Time 			(时间管理)
+ └─ Task Scheduler 	(任务调度)
 ```
 
-特性：
+功能说明：
 
-- 统一生命周期管理
-- 统一注册与遍历
-- 支持系统级调度与监控
+- 系统级服务管理
+- 任务调度和时间管理
 
-#### 6.4.2 Uart 设备类
+应用示例：
+
+```
+System::Init();//初始化系统
+
+System::Time::delayMs(1000);//阻塞延迟
+System::Time::getSysTime();//获取系统时间（毫秒数）
+System::Time::getSysTime(HH_MM_SS_MS);//获取系统时间（字符串）
+
+/*TimeMark（时间标记，用于测量程序运行时间、超时判断等）*/
+System::Time::TimeMark tm;//创建时间标记对象
+tm.insert();//插入一个时间标记
+tm.get();//获取插入点到当前的时间
+
+```
+
+#### 6.5.2 Uart 设备类
 
 结构关系：
 
@@ -451,27 +465,21 @@ public:
 Uart(Device)
  ├─ HalUart       (硬件驱动)
  ├─ RingBuffer    (RX/TX缓存)
- ├─ Protocol[]    (协议解析器)
- └─ LoggerChannel (日志通道)
+ └─ Protocol[]    (协议解析器)
 ```
 
 初始化示例：
 
 ```
-AsciiProtocol proto;
-Protocol* protos[] = { &proto };
-
+//创建协议清单（支持一个串口设备注册多个协议）
+AsciiProtocol* protos[] = {&default_proto};
+//创建串口设备，同时分配缓冲区大小
 Uart uart1(1024, 1024, protos, 1);
-
-UartInitParam p;
-p.name = "UART1";
-p.baudrate = 115200;
-p.port = UART_PORT1;
-
-uart1.Init(p);
+//初始化串口
+uart1.Init((UartInitParam){"UART1", PA10, PA9, _UART1, 115200, nullptr});
 ```
 
-#### 6.4.3 Logger 日志系统
+#### 6.5.3 Logger 日志系统
 
 设计目标：
 
@@ -491,13 +499,79 @@ Logger
 使用：
 
 ```
-Logger::RegisterChannel(LOG_CH_UART1, &uart1);
+Logger::RegisterChannel(LOG_CH_UART, &uart1);
 Logger::SetTimeCallback(System::Time::getSysTime);
 
-LOG_INFO(LOG_CH_UART1, "System started\r\n");
+LOG_INFO(LOG_CH_UART, "hello world !\r\n");
 ```
 
-## 6.5 APP —— 应用层规范
+#### 6.5.4 Output 设备类
+
+Output设备类用于封装GPIO输出功能，如LED、继电器、蜂鸣器、电机使能等。
+
+结构关系：
+
+```
+Output(Device)
+ ├─ HalGpio       (硬件驱动)
+ └─ pulse		   (PWM功能)
+```
+
+功能说明：
+
+- 封装GPIO输出功能，如LED、继电器、蜂鸣器、电机使能等
+- 提供基本开关控制和脉冲输出功能
+- 支持PWM调光/调速功能
+
+初始化示例：
+
+```
+Output led1;
+led1.Init((OutputInitParam){"LED1", PH11, GPIO_LEVEL_LOW});
+
+// 设置输出状态
+led1.open();
+led1.close();
+led1.pulseOutputStart(1000, 50);
+led1.pulseOutputStop();
+```
+
+#### 6.5.5 Input 设备类
+
+Input设备类用于封装GPIO输入功能，如按键、开关、传感器等。
+
+结构关系：
+
+```
+Input(Device)
+ ├─ HalGpio       (硬件驱动)
+ └─ Active      (状态变化检测及滤波)
+```
+
+功能说明：
+
+- 封装GPIO输入功能，如按键、开关、传感器等
+- 提供边沿检测和状态查询功能
+- 支持中断触发的状态变化回调
+
+初始化示例：
+
+```
+Input button1;
+button1.Init((InputInitParam){"BUTTON1", PG2, GPIO_LEVEL_HIGH, 10});
+
+if(button1.isActive())//按键按下
+{
+	/*执行业务逻辑*/
+}
+if(button1.isInactive())//按键释放
+{
+	/*执行业务逻辑*/
+}
+
+```
+
+## 6.6 APP —— 应用层规范
 
 应用层只做三件事：
 
@@ -511,72 +585,9 @@ LOG_INFO(LOG_CH_UART1, "System started\r\n");
 - 直接访问 HAL 结构体
 - 破坏 Device 抽象边界
 
-典型结构：
+## 7. 新增模块的标准流程
 
-```
-void APP_Init()
-{
-    InitDevices();
-    InitTasks();
-    StartTasks();
-}
-```
-
-## 7. 关键类设计说明
-
-### 7.1 System 类
-
-职责：
-
-- 系统初始化
-- Tick 管理
-- 主循环调度
-- 全局服务入口
-
-核心接口：
-
-```
-class System
-{
-public:
-    static void Init();
-    static void Run();
-    static uint64_t GetTickMs();
-};
-```
-
-### 7.2 Task 类
-
-封装协作式任务：
-
-```
-class Task
-{
-public:
-    Task(const char* name, TaskEntry entry);
-    void start();
-    void delay(uint32_t ms);
-    void nextState(uint8_t s);
-};
-```
-
-### 7.3 Protocol 类族
-
-统一通信帧处理接口：
-
-```
-class Protocol
-{
-public:
-    virtual void input(uint8_t byte) = 0;
-    virtual bool frameReady() = 0;
-    virtual void onFrame(const uint8_t* frame, uint16_t len) = 0;
-};
-```
-
-## 8. 新增模块的标准流程
-
-### 8.1 新增一个 MCU
+### 7.1 新增一个 MCU
 
 步骤：
 
@@ -586,11 +597,10 @@ public:
    - linker script
    - system_xxx.c
 3. 实现：
-   - SystemTick
-   - IRQ 桥接层
+   - 02_hal层，不能改变接口
 4. 在 CMake 中新增 target 选择项
 
-### 8.2 新增一个外设设备（如电机驱动）
+### 7.2 新增一个外设设备（如电机驱动）
 
 推荐分层：
 
@@ -602,7 +612,7 @@ MotorDevice (Device)
  └─ Task
 ```
 
-### 8.3 新增一个应用任务
+### 7.3 新增一个应用任务
 
 流程：
 
@@ -610,7 +620,7 @@ MotorDevice (Device)
 2. 注册 Task
 3. 在 APP_Init 中 start()
 
-## 9. CMake 构建体系与多 MCU 支持
+## 8. CMake 构建体系与多 MCU 支持
 
 本框架采用 CMake 作为唯一构建系统，目标是实现：
 
@@ -618,13 +628,13 @@ MotorDevice (Device)
 - 跨 IDE（VSCode / CLion / VS / 命令行）
 - 跨 MCU（F1 / F4 / F7 / H7 / 其他 Cortex-M）
 
-### 9.1 工程组织原则
+### 8.1 工程组织原则
 
 每个 MCU 平台对应一个独立的 BSP 目录
 
 启动文件、链接脚本、系统时钟配置与芯片强绑定
 
-HAL 与上层代码完全复用
+HAL接口与上层代码完全复用
 
 通过 CMake 变量选择目标平台
 
@@ -635,7 +645,7 @@ set(TARGET_MCU STM32F429)
 add_subdirectory(Frame/01_mcu/${TARGET_MCU})
 ```
 
-### 9.2 多 MCU 切换机制
+### 8.2 多 MCU 切换机制
 
 推荐做法：
 
@@ -651,9 +661,9 @@ cmake -DTARGET_MCU=STM32F429 ..
 - system_xxx.c
 - mcu.cmake（导出 include 路径与启动文件）
 
-## 10. 移植与扩展规范
+## 9. 移植与扩展规范
 
-### 10.1 新增 MCU 的标准步骤
+### 9.1 新增 MCU 的标准步骤
 
 1. 建立新 BSP 目录：[Frame/01_mcu/YourMCU](Frame/01_mcu)
 2. 提供：
@@ -665,9 +675,9 @@ cmake -DTARGET_MCU=STM32F429 ..
 4. 在顶层 CMake 中注册该平台
 5. 验证最小系统：串口打印 + SysTick 计时
 
-该流程保证上层 HAL / Device / APP 无需改动。
+该流程保证上层 chip / utils / Device / APP 无需改动。
 
-### 10.2 新增 HAL 外设驱动
+### 9.2 新增 HAL 外设驱动
 
 规则：
 
@@ -681,14 +691,13 @@ cmake -DTARGET_MCU=STM32F429 ..
 02_hal/
  └── can/
      ├── hal_can.hpp
-     └── hal_can_stm32f4.cpp
+     └── hal_can.cpp
 ```
 
-### 10.3 新增 Device 设备类
+### 9.3 新增 Device 设备类
 
 设备类应满足：
 
-- 继承 Device 基类
 - 持有一个或多个 HAL 实例
 - 内部可包含协议、缓冲区、控制状态机
 - 对外只暴露"设备级语义接口"
@@ -705,7 +714,7 @@ public:
 };
 ```
 
-### 10.4 新增任务的设计规范
+### 9.4 新增任务的设计规范
 
 任务应：
 
@@ -734,35 +743,35 @@ void MotorTask(Task& t)
 }
 ```
 
-## 11. 框架演进方向
+## 10. 框架演进方向
 
 该框架定位为长期演进的平台型工程，后续可自然扩展至：
 
-### 11.1 RTOS 适配层
+### 10.1 RTOS 适配层
 
 - 保留 Device / HAL 抽象
 - 用 RTOS Task 替换当前协作式 Task
 - Logger、Protocol、RingBuffer 继续复用
 
-### 11.2 仿真与单元测试
+### 10.2 仿真与单元测试
 
 - HAL Mock 化
 - 在 PC 端运行 Protocol / Task / Device 状态机
 - 引入 GoogleTest / Catch2
 
-### 11.3 静态库化
+### 10.3 静态库化
 
 - Frame 层编译为 libgbmcu.a
 - APP 作为独立工程链接
 - 支持多项目共用同一底层平台
 
-### 11.4 多核与高性能 MCU
+### 10.4 多核与高性能 MCU
 
 - 支持 M7 / M33 / RISC-V
 - 引入 Cache / MPU 抽象
 - 支持高速 DMA 与多总线架构
 
-## 12. 贡献与维护
+## 11. 贡献与维护
 
 建议的协作模式：
 
@@ -771,10 +780,12 @@ void MotorTask(Task& t)
 - 每个 MCU 平台维护独立文档
 - 每个新增模块提供最小示例
 
-## 13. 总结
+## 12. 总结
 
 Generic Bare Metal MCU Framework 的核心目标是：
 
 在不依赖 RTOS 的前提下，构建一套结构清晰、可扩展、工程化的 C++ 裸机软件架构，使嵌入式系统开发从"堆驱动代码"升级为"平台化软件工程"。
 
 它既可作为个人长期技术积累的基础平台，也可作为开源社区中研究裸机架构、面向对象嵌入式设计、多 MCU 抽象方法的参考实现。
+
+框架的演进方向，欢迎大家多提意见，技术细节交流请联系：<57612742@qq.com>。
