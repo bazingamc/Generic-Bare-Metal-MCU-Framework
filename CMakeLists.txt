@@ -1,9 +1,3 @@
-# 文件：CMakeLists.txt
-# 作者：bazingamc
-# 文件版本：V1
-# 适用芯片：STM32F4xx、GD32F4xx
-
-############################################ ↓ ↓ ↓ 下方可以修改 ↓ ↓ ↓ ############################################
 
 # 1.工程名
 
@@ -31,21 +25,6 @@ add_definitions(-DSTM32F42_43xxx -DUSE_STDPERIPH_DRIVER -DUSE_USB_OTG_HS -DUSE_E
 
 # 6.头文件包含路径（尽量使用相对路径）
 
-include_directories(
-
-        #在此添加APP内子文件夹包含路径
-        #例：APP/MotorCtrl
-
-
-        )
-############################################ ↑ ↑ ↑ 上方可以修改 ↑ ↑ ↑ ############################################
-
-
-########################################## ↓ ↓ ↓ 以下内容禁止修改 ↓ ↓ ↓ ##########################################
-
-#THIS FILE IS AUTO GENERATED FROM THE TEMPLATE! DO NOT CHANGE!
-
-#头文件包含路径
 include_directories(
 
         main
