@@ -14,7 +14,7 @@ static uart_rx_callback_t uart_rx_callbacks[8] = {NULL};
 
 // Allocate DMA resources for each UART
 static uart_dma_config_t uart_dma_configs[] = {
-    [_UART1] = { .is_busy = false, .dma_stream = DMA1_Stream7, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream7_IRQn },
+    [_UART1] = { .is_busy = false, .dma_stream = DMA2_Stream7, .dma_channel = DMA_Channel_4, .dma_irqn = DMA2_Stream7_IRQn },
     [_UART2] = { .is_busy = false, .dma_stream = DMA1_Stream6, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream6_IRQn },
     [_UART3] = { .is_busy = false, .dma_stream = DMA1_Stream3, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream3_IRQn },
     [_UART4] = { .is_busy = false, .dma_stream = DMA1_Stream4, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream4_IRQn },
@@ -188,6 +188,16 @@ void configure_uart_gpio(UartIndex uart, GpioIndex txPin, GpioIndex rxPin) {
     GPIO_PinAFConfig(rx_port, (uint8_t)(rx_pin - (rx_pin / 16) * 16), gpio_af);
 }
 
+static void enable_uart_dma_irq(UartIndex uart) {
+    uart_dma_config_t* dma_config = &uart_dma_configs[uart];
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = dma_config->dma_irqn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 6;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
+
 static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIndex rxPin) {
     USART_TypeDef* usart = get_uart_peripheral(uart);
     uint32_t uart_clock = get_uart_rcc_clock(uart);
@@ -262,6 +272,11 @@ static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIn
     
     // Enable UART
     USART_Cmd(usart, ENABLE);
+
+    // Enable DMA IRQ for this UART (TX)
+    if (uart < 8) {
+        enable_uart_dma_irq(uart);
+    }
 }
 
 static void uart_send_byte(UartIndex uart, uint8_t data) {
@@ -343,10 +358,6 @@ static void uart_send_bytes_dma(UartIndex uart, uint8_t* data, uint16_t size) {
     
     // Check if DMA is currently in use
     if (dma_config->is_busy) {
-        // If in use, fall back to normal sending
-        for (int i = 0; i < size; i++) {
-            uart_send_byte(uart, data[i]);
-        }
         return;
     }
     
@@ -363,6 +374,25 @@ static void uart_send_bytes_dma(UartIndex uart, uint8_t* data, uint16_t size) {
     // Reset DMA stream
     DMA_DeInit(dma_config->dma_stream);
     while(DMA_GetCmdStatus(dma_config->dma_stream) != DISABLE);  // Wait for DMA stream to be disabled
+
+    // Clear any pending DMA flags before reconfig
+    if (dma_config->dma_stream == DMA1_Stream7) {
+        DMA_ClearITPendingBit(DMA1_Stream7, DMA_IT_TCIF7 | DMA_IT_TEIF7 | DMA_IT_DMEIF7 | DMA_IT_FEIF7 | DMA_IT_HTIF7);
+    } else if (dma_config->dma_stream == DMA1_Stream6) {
+        DMA_ClearITPendingBit(DMA1_Stream6, DMA_IT_TCIF6 | DMA_IT_TEIF6 | DMA_IT_DMEIF6 | DMA_IT_FEIF6 | DMA_IT_HTIF6);
+    } else if (dma_config->dma_stream == DMA1_Stream4) {
+        DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4 | DMA_IT_TEIF4 | DMA_IT_DMEIF4 | DMA_IT_FEIF4 | DMA_IT_HTIF4);
+    } else if (dma_config->dma_stream == DMA1_Stream3) {
+        DMA_ClearITPendingBit(DMA1_Stream3, DMA_IT_TCIF3 | DMA_IT_TEIF3 | DMA_IT_DMEIF3 | DMA_IT_FEIF3 | DMA_IT_HTIF3);
+    } else if (dma_config->dma_stream == DMA1_Stream1) {
+        DMA_ClearITPendingBit(DMA1_Stream1, DMA_IT_TCIF1 | DMA_IT_TEIF1 | DMA_IT_DMEIF1 | DMA_IT_FEIF1 | DMA_IT_HTIF1);
+    } else if (dma_config->dma_stream == DMA1_Stream0) {
+        DMA_ClearITPendingBit(DMA1_Stream0, DMA_IT_TCIF0 | DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_HTIF0);
+    } else if (dma_config->dma_stream == DMA2_Stream6) {
+        DMA_ClearITPendingBit(DMA2_Stream6, DMA_IT_TCIF6 | DMA_IT_TEIF6 | DMA_IT_DMEIF6 | DMA_IT_FEIF6 | DMA_IT_HTIF6);
+    } else if (dma_config->dma_stream == DMA2_Stream7) {
+        DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7 | DMA_IT_TEIF7 | DMA_IT_DMEIF7 | DMA_IT_FEIF7 | DMA_IT_HTIF7);
+    }
     
     // Configure DMA
     DMA_InitTypeDef DMA_InitStructure;
@@ -394,6 +424,13 @@ static void uart_send_bytes_dma(UartIndex uart, uint8_t* data, uint16_t size) {
     
     // Enable DMA stream
     DMA_Cmd(dma_config->dma_stream, ENABLE);
+}
+
+static int uart_is_tx_busy(UartIndex uart) {
+    if (uart >= 8) {
+        return 0;
+    }
+    return uart_dma_configs[uart].is_busy ? 1 : 0;
 }
 
 // DMA interrupt handler
@@ -465,6 +502,20 @@ void DMA2_Stream6_IRQHandler(void) {
         // Find which UART used this DMA stream
         for(int i = 0; i < 8; i++) {
             if(uart_dma_configs[i].dma_stream == DMA2_Stream6) {
+                uart_dma_tx_complete_callback((UartIndex)i);
+                break;
+            }
+        }
+    }
+}
+
+void DMA2_Stream7_IRQHandler(void) {
+    if(DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF7)) {
+        DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
+        DMA_Cmd(DMA2_Stream7, DISABLE);  // Disable DMA stream
+
+        for(int i = 0; i < 8; i++) {
+            if(uart_dma_configs[i].dma_stream == DMA2_Stream7) {
                 uart_dma_tx_complete_callback((UartIndex)i);
                 break;
             }
@@ -580,6 +631,7 @@ const hal_uart_ops_t hal_uart = {
     .receive_byte = uart_receive_byte,
     .is_data_available = uart_is_data_available,
     .send_bytes_dma = uart_send_bytes_dma,
+    .is_tx_busy = uart_is_tx_busy,
     .register_rx_callback = uart_register_rx_callback  // Add callback registration function
     
 };

@@ -16,7 +16,7 @@ void Task1(Task* self, TaskParam* param)
 		self->transitionToNextState();// Transition to next state
 		break;
 	case 1:
-		self->delay(2000, WHERE_NEXT);// Delay for 2 seconds then transition to next state
+		self->delay(500, WHERE_NEXT);// Delay for 2 seconds then transition to next state
 		break;
 	case 2:
 		// Start subtask t2, transition to next state on success, failure state on failure
@@ -38,7 +38,7 @@ void Task2(Task* self, TaskParam* param)
 		self->userStateChange(1);
 		break;
 	case 1:
-		self->delay(2000, WHERE_NEXT);
+		self->delay(500, WHERE_NEXT);
 		break;
 	case 2:
 		self->success();

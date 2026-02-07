@@ -14,6 +14,7 @@ extern "C" {
 #include "hal_timer.h"
 #include "hal_adc.h"
 #include "hal_spi.h"
+#include "hal_pwm.h"
 
 #ifdef __cplusplus
 }

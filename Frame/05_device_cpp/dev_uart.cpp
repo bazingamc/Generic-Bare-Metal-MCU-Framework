@@ -6,8 +6,13 @@ int Uart::objectCount = 0;
 Uart* Uart::instance_ = nullptr;
 Uart::Uart(size_t rxBufSize, size_t txBufSize)
     : rxBuffer_(rxBufSize),
-      txBuffer_(txBufSize)
+      txBuffer_(txBufSize),
+      txDmaBuf_(nullptr),
+      txDmaBufSize_(txBufSize/4)
 {
+    if (txDmaBufSize_ > 0) {
+        txDmaBuf_ = (uint8_t*)malloc(txDmaBufSize_);
+    }
     if (objectCount < MAX_OBJECTS) 
 	{
 		objects[objectCount++] = this;
@@ -20,6 +25,11 @@ Uart::Uart(size_t rxBufSize, size_t txBufSize)
 
 Uart::~Uart()
 {
+    if (txDmaBuf_) {
+        free(txDmaBuf_);
+        txDmaBuf_ = nullptr;
+        txDmaBufSize_ = 0;
+    }
     for (int i = 0; i < objectCount; i++) 
 	{
 		if (objects[i] == this) 
@@ -61,6 +71,8 @@ void Uart::uartTask()
 	{
 		Uart* obj = Uart::objects[i];
 
+        obj->processTx();
+
         if(System::Time::getSysTime() - obj->received_time_ > 10)
         {
             obj->protocols_[i]->reset();
@@ -79,8 +91,23 @@ void Uart::uartTask()
 
 void Uart::Send(u16 len, uint8_t* data)
 {
-    hal_uart.send_bytes(this->initParam.uart, len, data);
-    // hal_uart.send_bytes_dma(this->initParam.uart, data, len);
+    if (data == nullptr || len == 0) {
+        return;
+    }
+
+    if (txDmaBuf_ == nullptr || txDmaBufSize_ == 0) {
+        hal_uart.send_bytes(this->initParam.uart, len, data);
+        return;
+    }
+
+    for (uint16_t i = 0; i < len; i++) {
+        if (!txBuffer_.push(data[i])) {
+            break;  // TX buffer full, drop remaining data
+        }
+    }
+
+    // Kick DMA if idle
+    processTx();
 }
 
 void Uart::Send(Protocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data)
@@ -98,5 +125,29 @@ void Uart::rxCallbackThunk(uint8_t ch)
     if (instance_)
     {
         instance_->onRxChar(ch);
+    }
+}
+
+void Uart::processTx()
+{
+    if (txDmaBuf_ == nullptr || txDmaBufSize_ == 0) {
+        return;
+    }
+
+    if (hal_uart.is_tx_busy(this->initParam.uart)) {
+        return;
+    }
+
+    uint16_t count = 0;
+    uint8_t ch;
+    while (count < txDmaBufSize_) {
+        if (!txBuffer_.pop(ch)) {
+            break;
+        }
+        txDmaBuf_[count++] = ch;
+    }
+
+    if (count > 0) {
+        hal_uart.send_bytes_dma(this->initParam.uart, txDmaBuf_, count);
     }
 }

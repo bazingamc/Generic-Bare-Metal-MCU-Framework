@@ -47,6 +47,8 @@ private:
 
     RingBuffer<uint8_t> rxBuffer_;
     RingBuffer<uint8_t> txBuffer_;
+    uint8_t* txDmaBuf_;
+    size_t txDmaBufSize_;
 
     Protocol** protocols_;
     uint8_t proto_count_;
@@ -54,6 +56,9 @@ private:
     uint64_t received_time_;
 
     void (*msgHandler)(Uart*, Protocol*);
+
+    // TX queue -> DMA
+    void processTx();
 
     // Called from ISR
     void onRxChar(uint8_t ch);

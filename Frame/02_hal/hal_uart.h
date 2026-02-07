@@ -24,6 +24,7 @@ typedef struct {
     uint8_t (*receive_byte)(UartIndex uart);
     int (*is_data_available)(UartIndex uart);
     void (*send_bytes_dma)(UartIndex uart, uint8_t* data, uint16_t size);
+    int (*is_tx_busy)(UartIndex uart);
     void (*register_rx_callback)(UartIndex uart, uart_rx_callback_t callback);  // Register UART receive interrupt callback
 } hal_uart_ops_t;
 

@@ -62,6 +62,19 @@ void MsgDeal(Uart* obj, Protocol* protocol)
     }
     break;
 
+    case 0x05:
+    {
+        if(data[0])
+        {
+            t1.start();
+        }
+        else    
+        { 
+            t1.stop();
+        }
+    }
+    break;
+
     
     default:
         break;
