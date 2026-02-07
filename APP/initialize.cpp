@@ -1,20 +1,22 @@
 #include "APP.hpp"
 
-Output led1;
+Output ledR, ledG, ledB;
 Output beep;
-// Protocol list
-AsciiProtocol* protos[] = {&default_proto};
-Uart uart1(1024, 1024, protos, 1);
+Uart uart1(1024, 1024);
 void APP_Init() 
 {
     System::init();
 
-	led1.init((OutputInitParam){"LED1", PH11, GPIO_LEVEL_LOW});
-	led1.pulseOutputStart();// Start pulse output, default parameters: period 1000ms, duty cycle 50%
+	ledR.init((OutputInitParam){"ledR", PH10, GPIO_LEVEL_LOW});
+	ledG.init((OutputInitParam){"ledG", PH11, GPIO_LEVEL_LOW});
+	ledB.init((OutputInitParam){"ledB", PH12, GPIO_LEVEL_LOW});
+	ledG.pulseOutputStart();
 
 	beep.init((OutputInitParam){"BEEP", PI11, GPIO_LEVEL_HIGH});
 
-	uart1.Init((UartInitParam){"UART1", PA10, PA9, _UART1, 115200, nullptr});
+	
+	static Protocol* protos[] = {&default_proto};
+	uart1.Init((UartInitParam){"UART1", PA10, PA9, _UART1, 115200, protos, 1, MsgDeal});
 
 	// log
 	Logger::RegisterChannel(LOG_CH_UART, &uart1);

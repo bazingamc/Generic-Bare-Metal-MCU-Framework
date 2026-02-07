@@ -1,22 +1,22 @@
 #include "utils.hpp"
 
-// Create a serial protocol
-AsciiProtocol default_proto((ProtocolFormat){"$$",2,2,4,65535,CheckType::CRC16,4,"\r\n",2});
-
-AsciiProtocol::AsciiProtocol(const ProtocolFormat& fmt)
+const uint8_t default_header[] = {0xaa, 0x55};
+const uint8_t default_tail[] = {0x0d, 0x0a};
+const ProtocolFormat default_proto_fmt = {default_header,2,1,1,CheckType::NONE,1,default_tail,2};
+Protocol default_proto(default_proto_fmt);
+Protocol::Protocol(const ProtocolFormat& fmt)
     : fmt_(fmt)
 {
     reset();
 }
 
-void AsciiProtocol::reset()
+void Protocol::reset()
 {
     state_    = State::FIND_HEADER;
     index_    = 0;
-    data_len_ = 0;
 }
 
-bool AsciiProtocol::input(char ch)
+bool Protocol::input(char ch)
 {
     switch (state_)
     {
@@ -36,8 +36,8 @@ bool AsciiProtocol::input(char ch)
         cmd_[index_++] = ch;
         if (index_ == fmt_.cmd_len)
         {
-            cmd_[index_] = '\0';
             index_ = 0;
+            data_len_ = 0;
             state_ = State::READ_LEN;
         }
         break;
@@ -46,14 +46,19 @@ bool AsciiProtocol::input(char ch)
         len_buf_[index_++] = ch;
         if (index_ == fmt_.len_len)
         {
-            data_len_ = asciiToUint(len_buf_, fmt_.len_len);
-            if (data_len_ > fmt_.max_data_len)
+            for (uint8_t i = 0; i < fmt_.len_len; i++)
             {
-                reset();
-                break;
+               data_len_ = data_len_ << 8 | len_buf_[i];
             }
             index_ = 0;
-            state_ = State::READ_DATA;
+            if(data_len_ == 0)
+            {
+                state_ = State::READ_CHECK;
+            }
+            else
+            {
+                state_ = State::READ_DATA;
+            }
         }
         break;
 
@@ -61,7 +66,6 @@ bool AsciiProtocol::input(char ch)
         data_[index_++] = ch;
         if (index_ == data_len_)
         {
-            data_[index_] = '\0';
             index_ = 0;
             state_ = State::READ_CHECK;
         }
@@ -71,7 +75,11 @@ bool AsciiProtocol::input(char ch)
         check_buf_[index_++] = ch;
         if (index_ == fmt_.check_len)
         {
-            uint16_t recv = asciiToUint(check_buf_, fmt_.check_len);
+            uint16_t recv = 0;
+            for (uint8_t i = 0; i < fmt_.check_len; i++)
+            {
+               recv = recv << 8 | check_buf_[i];
+            }
             uint16_t calc = calcCheck();
             if (recv != calc)
             {
@@ -99,28 +107,14 @@ bool AsciiProtocol::input(char ch)
     return false;
 }
 
-uint16_t AsciiProtocol::asciiToUint(const char* buf, uint8_t len) const
-{
-    uint16_t v = 0;
-    for (uint8_t i = 0; i < len; i++)
-    {
-        char c = buf[i];
-        if (c >= '0' && c <= '9')
-            v = v * 10 + (c - '0');
-        else if (c >= 'A' && c <= 'F')
-            v = (v << 4) + (c - 'A' + 10);
-    }
-    return v;
-}
 
-uint16_t AsciiProtocol::buildFrame(const char* cmd,
-                                   const char* data,
+
+uint16_t Protocol::buildFrame(uint8_t* cmd,
+                                   uint8_t* data,
                                    uint16_t    data_len,
-                                   char*       out_buf,
+                                   uint8_t*       out_buf,
                                    uint16_t    out_buf_size) const
 {
-    if (data_len > fmt_.max_data_len)
-        return 0;
 
     uint16_t total_len =
         fmt_.header_len +
@@ -143,8 +137,8 @@ uint16_t AsciiProtocol::buildFrame(const char* cmd,
     memcpy(&out_buf[pos], cmd, fmt_.cmd_len);
     pos += fmt_.cmd_len;
 
-    /* length (ASCII) */
-    uintToAscii(data_len, &out_buf[pos], fmt_.len_len);
+    /* length */
+    memcpy(&out_buf[pos], &data_len, fmt_.len_len);
     pos += fmt_.len_len;
 
     /* data */
@@ -153,7 +147,7 @@ uint16_t AsciiProtocol::buildFrame(const char* cmd,
 
     /* check */
     uint16_t check = calcCheck(data, data_len);
-    uintToAscii(check, &out_buf[pos], fmt_.check_len);
+    memcpy(&out_buf[pos], &check, fmt_.check_len);
     pos += fmt_.check_len;
 
     /* tail */
@@ -163,7 +157,7 @@ uint16_t AsciiProtocol::buildFrame(const char* cmd,
     return pos;
 }
 
-uint16_t AsciiProtocol::calcCheck(const char* data, uint16_t len) const
+uint16_t Protocol::calcCheck(uint8_t* data, uint16_t len) const
 {
     if (fmt_.check_type == CheckType::SUM)
     {
@@ -186,7 +180,7 @@ uint16_t AsciiProtocol::calcCheck(const char* data, uint16_t len) const
     return 0;
 }
 
-uint16_t AsciiProtocol::calcCheck() const
+uint16_t Protocol::calcCheck() const
 {
     if (fmt_.check_type == CheckType::SUM)
     {
@@ -209,11 +203,3 @@ uint16_t AsciiProtocol::calcCheck() const
     return 0;
 }
 
-void AsciiProtocol::uintToAscii(uint16_t value, char* buf, uint8_t len) const
-{
-    for (int8_t i = len - 1; i >= 0; i--)
-    {
-        buf[i] = (value % 10) + '0';
-        value /= 10;
-    }
-}

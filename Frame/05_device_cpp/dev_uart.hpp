@@ -1,7 +1,8 @@
 #pragma once
-#include "ascii_protocol.hpp"
+#include "protocol.hpp"
 
 class Uart;
+
 
 typedef struct 
 {
@@ -10,17 +11,20 @@ typedef struct
     GpioIndex txPin = PIN_END;//Use hal layer default pin mapping
     UartIndex uart = _UART1;
     uint32_t baudrate = 115200; // Baud rate
-    void (*msgHandler)(Uart*) = nullptr; // Message handling callback function
+    Protocol** protocols;
+    uint8_t proto_count;
+    void (*msgHandler)(Uart*, Protocol*) = nullptr; // Message handling callback function
 }UartInitParam;
 
 class Uart
 {
 public:
-    Uart(size_t rxBufSize, size_t txBufSize, AsciiProtocol* protocols[], uint8_t proto_count);
+    Uart(size_t rxBufSize, size_t txBufSize);
+    ~Uart();
 
     void Init(UartInitParam param);
     void Send(u16 len, uint8_t* data);
-    void Send(AsciiProtocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data);
+    void Send(Protocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data);
 
     
 
@@ -44,11 +48,15 @@ private:
     RingBuffer<uint8_t> rxBuffer_;
     RingBuffer<uint8_t> txBuffer_;
 
-    AsciiProtocol** protocols_;
+    Protocol** protocols_;
     uint8_t proto_count_;
 
-    void (*msgHandler)(Uart*);
+    uint64_t received_time_;
+
+    void (*msgHandler)(Uart*, Protocol*);
 
     // Called from ISR
     void onRxChar(uint8_t ch);
+    static void rxCallbackThunk(uint8_t ch);
+    static Uart* instance_;
 };

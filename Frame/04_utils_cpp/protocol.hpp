@@ -8,47 +8,44 @@ enum class CheckType : uint8_t
 
 struct ProtocolFormat
 {
-    const char* header;
+    const uint8_t*    header;
     uint8_t     header_len;
 
     uint8_t     cmd_len;
     uint8_t     len_len;
 
-    uint16_t    max_data_len;
-
     CheckType   check_type;
     uint8_t     check_len;
 
-    const char* tail;
+    const uint8_t*    tail;
     uint8_t     tail_len;
 };
 
-class AsciiProtocol
+class Protocol
 {
 public:
-    explicit AsciiProtocol(const ProtocolFormat& fmt);
+    Protocol(const ProtocolFormat& fmt);
 
     /* ---------- Receive Parsing ---------- */
     void reset();
     bool input(char ch);
 
-    const char* cmd()  const { return cmd_; }
-    const char* data() const { return data_; }
+    const uint8_t* cmd()  const { return cmd_; }
+    const uint8_t* data() const { return data_; }
     uint16_t    dataLen() const { return data_len_; }
+
 
     /* ---------- Send Packing ---------- */
     // Returns the length of the generated frame, 0 indicates failure
-    uint16_t buildFrame(const char* cmd,
-                        const char* data,
+    uint16_t buildFrame(uint8_t* cmd,
+                        uint8_t* data,
                         uint16_t    data_len,
-                        char*       out_buf,
+                        uint8_t*       out_buf,
                         uint16_t    out_buf_size) const;
 
 protected:
-    uint16_t asciiToUint(const char* buf, uint8_t len) const;
     uint16_t calcCheck() const;
-    uint16_t calcCheck(const char* data, uint16_t len) const;
-    void     uintToAscii(uint16_t value, char* buf, uint8_t len) const;
+    uint16_t calcCheck(uint8_t* data, uint16_t len) const;
 
 private:
     enum class State : uint8_t
@@ -66,14 +63,16 @@ private:
     State   state_;
     uint8_t index_;
 
-    char header_buf_[16];
-    char cmd_[16];
-    char len_buf_[8];
-    char data_[256];
-    char check_buf_[8];
-    char tail_buf_[8];
+    uint8_t header_buf_[16];
+    uint8_t cmd_[16];
+    uint8_t len_buf_[8];
+    uint8_t data_[1024];
+    uint8_t check_buf_[8];
+    uint8_t tail_buf_[8];
 
-    uint16_t data_len_;
+    uint32_t data_len_;
+
+    
 };
 
-extern AsciiProtocol default_proto;
+extern Protocol default_proto;

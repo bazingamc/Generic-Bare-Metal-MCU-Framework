@@ -407,7 +407,7 @@ typedef struct {
 
 如：
 
-- AsciiProtocol
+- Protocol
 - BinaryFrameProtocol
 
 职责：
@@ -472,7 +472,7 @@ Uart(Device)
 
 ```
 //创建协议清单（支持一个串口设备注册多个协议）
-AsciiProtocol* protos[] = {&default_proto};
+Protocol* protos[] = {&default_proto};
 //创建串口设备，同时分配缓冲区大小
 Uart uart1(1024, 1024, protos, 1);
 //初始化串口

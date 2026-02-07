@@ -1,5 +1,8 @@
 #pragma once
 
+// UART interrupt callback function type definition
+// Callback function will be called when UART receives data
+typedef void (*uart_rx_callback_t)(uint8_t);
 
 typedef enum  // UART index
 {
@@ -21,6 +24,7 @@ typedef struct {
     uint8_t (*receive_byte)(UartIndex uart);
     int (*is_data_available)(UartIndex uart);
     void (*send_bytes_dma)(UartIndex uart, uint8_t* data, uint16_t size);
+    void (*register_rx_callback)(UartIndex uart, uart_rx_callback_t callback);  // Register UART receive interrupt callback
 } hal_uart_ops_t;
 
 extern const hal_uart_ops_t hal_uart;

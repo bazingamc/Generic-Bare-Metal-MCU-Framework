@@ -9,6 +9,9 @@ typedef struct {
     IRQn_Type dma_irqn;  // Corresponding DMA interrupt number
 } uart_dma_config_t;
 
+// UART receive interrupt callback function array
+static uart_rx_callback_t uart_rx_callbacks[8] = {NULL};
+
 // Allocate DMA resources for each UART
 static uart_dma_config_t uart_dma_configs[] = {
     [_UART1] = { .is_busy = false, .dma_stream = DMA1_Stream7, .dma_channel = DMA_Channel_4, .dma_irqn = DMA1_Stream7_IRQn },
@@ -215,6 +218,47 @@ static void uart_init(UartIndex uart, uint32_t baudrate, GpioIndex txPin, GpioIn
     USART_InitStruct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
     
     USART_Init(usart, &USART_InitStruct);
+    
+    // Enable UART receive interrupt by default
+    USART_ITConfig(usart, USART_IT_RXNE, ENABLE);
+    
+    // Enable UART interrupt in NVIC
+    switch(uart) {
+        case _UART1:
+            NVIC_EnableIRQ(USART1_IRQn);
+            NVIC_SetPriority(USART1_IRQn, 5);  // Set interrupt priority
+            break;
+        case _UART2:
+            NVIC_EnableIRQ(USART2_IRQn);
+            NVIC_SetPriority(USART2_IRQn, 5);
+            break;
+        case _UART3:
+            NVIC_EnableIRQ(USART3_IRQn);
+            NVIC_SetPriority(USART3_IRQn, 5);
+            break;
+        case _UART4:
+            NVIC_EnableIRQ(UART4_IRQn);
+            NVIC_SetPriority(UART4_IRQn, 5);
+            break;
+        case _UART5:
+            NVIC_EnableIRQ(UART5_IRQn);
+            NVIC_SetPriority(UART5_IRQn, 5);
+            break;
+        case _UART6:
+            NVIC_EnableIRQ(USART6_IRQn);
+            NVIC_SetPriority(USART6_IRQn, 5);
+            break;
+        case _UART7:
+            NVIC_EnableIRQ(UART7_IRQn);
+            NVIC_SetPriority(UART7_IRQn, 5);
+            break;
+        case _UART8:
+            NVIC_EnableIRQ(UART8_IRQn);
+            NVIC_SetPriority(UART8_IRQn, 5);
+            break;
+        default:
+            break;
+    }
     
     // Enable UART
     USART_Cmd(usart, ENABLE);
@@ -458,6 +502,76 @@ void DMA1_Stream0_IRQHandler(void) {
     }
 }
 
+// Register UART receive interrupt callback function
+static void uart_register_rx_callback(UartIndex uart, uart_rx_callback_t callback) {
+    if (uart < 8) {
+        uart_rx_callbacks[uart] = callback;
+    }
+}
+
+// UART interrupt handler - public function to allow external access
+void uart_irq_handler(UartIndex uart) {
+    USART_TypeDef* usart = get_uart_peripheral(uart);
+    
+    if (usart == NULL) {
+        return;
+    }
+    
+    // Handle receive interrupt
+    if (USART_GetITStatus(usart, USART_IT_RXNE) != RESET) {
+        // Read received data to clear interrupt flag
+        uint8_t received_data = (uint8_t)USART_ReceiveData(usart);
+        
+        // Call registered callback function if exists
+        if (uart_rx_callbacks[uart] != NULL) {
+            uart_rx_callbacks[uart](received_data);
+        }
+    }
+    
+    // Handle other interrupts if needed
+    // Other interrupt handling can be added here
+}
+
+// UART1 interrupt handler
+void USART1_IRQHandler(void) {
+    uart_irq_handler(_UART1);
+}
+
+// UART2 interrupt handler
+void USART2_IRQHandler(void) {
+    uart_irq_handler(_UART2);
+}
+
+// UART3 interrupt handler
+void USART3_IRQHandler(void) {
+    uart_irq_handler(_UART3);
+}
+
+// UART4 interrupt handler
+void UART4_IRQHandler(void) {
+    uart_irq_handler(_UART4);
+}
+
+// UART5 interrupt handler
+void UART5_IRQHandler(void) {
+    uart_irq_handler(_UART5);
+}
+
+// UART6 interrupt handler
+void USART6_IRQHandler(void) {
+    uart_irq_handler(_UART6);
+}
+
+// UART7 interrupt handler
+void UART7_IRQHandler(void) {
+    uart_irq_handler(_UART7);
+}
+
+// UART8 interrupt handler
+void UART8_IRQHandler(void) {
+    uart_irq_handler(_UART8);
+}
+
 const hal_uart_ops_t hal_uart = {
     .init = uart_init,
     .send_byte = uart_send_byte,
@@ -465,6 +579,7 @@ const hal_uart_ops_t hal_uart = {
     .send_string = uart_send_string,
     .receive_byte = uart_receive_byte,
     .is_data_available = uart_is_data_available,
-    .send_bytes_dma = uart_send_bytes_dma
+    .send_bytes_dma = uart_send_bytes_dma,
+    .register_rx_callback = uart_register_rx_callback  // Add callback registration function
     
 };

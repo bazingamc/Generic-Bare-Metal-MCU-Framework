@@ -5,6 +5,7 @@
         }
     ],
     "settings": {
-        "jdk.advanced.disable.nbjavac": false
+        "jdk.advanced.disable.nbjavac": false,
+        "cortex-debug.variableUseNaturalFormat": false
     }
 }
