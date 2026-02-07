@@ -75,16 +75,24 @@ void Uart::uartTask()
 
         if(System::Time::getSysTime() - obj->received_time_ > 10)
         {
-            obj->protocols_[i]->reset();
-        }
-		if(obj->rxBuffer_.pop(ch))
-        {
-            obj->received_time_ = System::Time::getSysTime();
-            if (obj->protocols_[i]->input(ch))
+            for (uint8_t j = 0; j < obj->proto_count_; j++)
             {
-                if(obj->msgHandler != nullptr)obj->msgHandler(obj, obj->protocols_[i]);
+                obj->protocols_[j]->reset();
             }
         }
+        
+        if(obj->rxBuffer_.pop(ch))
+        {
+            obj->received_time_ = System::Time::getSysTime();
+            for (uint8_t j = 0; j < obj->proto_count_; j++)
+            {
+                if (obj->protocols_[j]->input(ch))
+                {
+                    if(obj->msgHandler != nullptr)obj->msgHandler(obj, obj->protocols_[j]);
+                }
+            }
+        }
+        
 	}
 
 }

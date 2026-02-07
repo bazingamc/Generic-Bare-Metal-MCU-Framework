@@ -3,6 +3,15 @@
 Output ledR, ledG, ledB;
 Output beep;
 Uart uart1(1024, 1024);
+
+//创建自定义协议
+const uint8_t myproto_header[] = {0x88};
+const uint8_t myproto_tail[] = {0x0d, 0x0a};
+const ProtocolFormat myproto_fmt = {myproto_header,1,2,2,CheckType::NONE,1,myproto_tail,2};
+Protocol myproto(myproto_fmt);
+//协议列表
+Protocol* protos[] = {&default_proto, &myproto};
+
 void APP_Init() 
 {
     System::init();
@@ -14,9 +23,8 @@ void APP_Init()
 
 	beep.init((OutputInitParam){"BEEP", PI11, GPIO_LEVEL_HIGH});
 
-	
-	static Protocol* protos[] = {&default_proto};
-	uart1.Init((UartInitParam){"UART1", PA10, PA9, _UART1, 115200, protos, 1, MsgDeal});
+	//串口初始化
+	uart1.Init((UartInitParam){"UART1", PA10, PA9, _UART1, 115200, protos, sizeof(protos) / sizeof(Protocol*), MsgDeal});
 
 	// log
 	Logger::RegisterChannel(LOG_CH_UART, &uart1);

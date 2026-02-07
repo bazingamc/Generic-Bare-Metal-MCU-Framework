@@ -46,9 +46,12 @@ bool Protocol::input(char ch)
         len_buf_[index_++] = ch;
         if (index_ == fmt_.len_len)
         {
-            for (uint8_t i = 0; i < fmt_.len_len; i++)
+            switch (fmt_.len_len)
             {
-               data_len_ = data_len_ << 8 | len_buf_[i];
+            case 1: data_len_ = *((uint8_t*)len_buf_);break;
+            case 2: data_len_ = *((uint16_t*)len_buf_);break;
+            case 4: data_len_ = *((uint32_t*)len_buf_);break;
+            default:data_len_ = *((uint8_t*)len_buf_);break;
             }
             index_ = 0;
             if(data_len_ == 0)
