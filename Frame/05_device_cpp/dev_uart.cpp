@@ -88,6 +88,13 @@ void Uart::uartTask()
             {
                 if (obj->protocols_[j]->input(ch))
                 {
+                    uint32_t cmd = obj->protocols_[j]->cmd();
+                    uint16_t dataLen = obj->protocols_[j]->dataLen();
+                    char line[dataLen * 3 + 1];
+
+                    BytesToString((uint8_t*)obj->protocols_[j]->data(), dataLen, (char*)line, sizeof(line));
+                    LOG_INFO(LOG_CH_UART, "%s received cmd: 0x%08X, len: %d, data %s\r\n",obj->initParam.name, cmd, dataLen, line );
+
                     if(obj->msgHandler != nullptr)obj->msgHandler(obj, obj->protocols_[j]);
                 }
             }
@@ -125,6 +132,10 @@ void Uart::Send(Protocol *protocol, uint32_t cmd, uint32_t len, uint8_t* data)
     if (frame_len > 0)
     {
         this->Send(frame_len, (uint8_t*)frame);
+
+        char line[frame_len * 3 + 1];
+        BytesToString(frame, frame_len, (char*)line, sizeof(line));
+        LOG_INFO(LOG_CH_UART, "%s send:%s\r\n", this->initParam.name, line);
     }
 }
 

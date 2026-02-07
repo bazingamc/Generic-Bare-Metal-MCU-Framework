@@ -7,7 +7,7 @@ Uart uart1(1024, 1024);
 //创建自定义协议
 const uint8_t myproto_header[] = {0x88};
 const uint8_t myproto_tail[] = {0x0d, 0x0a};
-const ProtocolFormat myproto_fmt = {myproto_header,1,2,2,CheckType::NONE,1,myproto_tail,2};
+const ProtocolFormat myproto_fmt = {myproto_header,1,2,2,CheckType::NONE,1,myproto_tail,2,EndianType::ENDIAN_LITTLE};
 Protocol myproto(myproto_fmt);
 //协议列表
 Protocol* protos[] = {&default_proto, &myproto};

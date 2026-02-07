@@ -2,11 +2,9 @@
 
 void MsgDeal(Uart* obj, Protocol* protocol)
 {
-    uint32_t cmd = *((uint32_t*)protocol->cmd());
+    uint32_t cmd = protocol->cmd();
     uint16_t dataLen = protocol->dataLen();
     const uint8_t* data = protocol->data();
-
-    LOG_INFO(LOG_CH_UART, "received cmd: 0x%02X, len: %d, data 0x%02x\r\n", cmd, dataLen, data[0] );
 
     switch (cmd)
     {
@@ -58,7 +56,8 @@ void MsgDeal(Uart* obj, Protocol* protocol)
 
     case 0x04:
     {
-        uart1.Send(&default_proto, cmd, dataLen, (uint8_t*)data);
+        uint8_t response_data[4] = {1,2,3,4};
+        uart1.Send(&myproto, cmd, 4, (uint8_t*)response_data);
     }
     break;
 

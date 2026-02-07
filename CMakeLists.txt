@@ -81,6 +81,7 @@ file(GLOB_RECURSE SOURCES
         "Frame/02_hal/*.c"
         "Frame/03_chip_driver/*.c"
         "Frame/04_utils_cpp/*.cpp"
+        "Frame/04_utils_cpp/*.c"
         "Frame/05_device_cpp/*.cpp"
         
  

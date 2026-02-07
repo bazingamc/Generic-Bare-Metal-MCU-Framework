@@ -2,7 +2,7 @@
 
 const uint8_t default_header[] = {0xaa, 0x55};
 const uint8_t default_tail[] = {0x0d, 0x0a};
-const ProtocolFormat default_proto_fmt = {default_header,2,1,1,CheckType::NONE,1,default_tail,2};
+const ProtocolFormat default_proto_fmt = {default_header,2,1,1,CheckType::NONE,1,default_tail,2,EndianType::ENDIAN_LITTLE};
 Protocol default_proto(default_proto_fmt);
 Protocol::Protocol(const ProtocolFormat& fmt)
     : fmt_(fmt)
@@ -36,6 +36,7 @@ bool Protocol::input(char ch)
         cmd_[index_++] = ch;
         if (index_ == fmt_.cmd_len)
         {
+            data_cmd_ = endian_parse_u32(cmd_, fmt_.cmd_len, fmt_.endian);
             index_ = 0;
             data_len_ = 0;
             state_ = State::READ_LEN;
@@ -46,13 +47,7 @@ bool Protocol::input(char ch)
         len_buf_[index_++] = ch;
         if (index_ == fmt_.len_len)
         {
-            switch (fmt_.len_len)
-            {
-            case 1: data_len_ = *((uint8_t*)len_buf_);break;
-            case 2: data_len_ = *((uint16_t*)len_buf_);break;
-            case 4: data_len_ = *((uint32_t*)len_buf_);break;
-            default:data_len_ = *((uint8_t*)len_buf_);break;
-            }
+            data_len_ = endian_parse_u32(len_buf_, fmt_.len_len, fmt_.endian);
             index_ = 0;
             if(data_len_ == 0)
             {
@@ -78,11 +73,7 @@ bool Protocol::input(char ch)
         check_buf_[index_++] = ch;
         if (index_ == fmt_.check_len)
         {
-            uint16_t recv = 0;
-            for (uint8_t i = 0; i < fmt_.check_len; i++)
-            {
-               recv = recv << 8 | check_buf_[i];
-            }
+            uint16_t recv = (uint16_t)endian_parse_u32(check_buf_, fmt_.check_len, fmt_.endian);
             uint16_t calc = calcCheck();
             if (recv != calc)
             {
@@ -137,11 +128,11 @@ uint16_t Protocol::buildFrame(uint8_t* cmd,
     pos += fmt_.header_len;
 
     /* cmd */
-    memcpy(&out_buf[pos], cmd, fmt_.cmd_len);
+    endian_write_bytes(&out_buf[pos], cmd, fmt_.cmd_len, fmt_.endian);
     pos += fmt_.cmd_len;
 
     /* length */
-    memcpy(&out_buf[pos], &data_len, fmt_.len_len);
+    endian_write_u32(&out_buf[pos], fmt_.len_len, fmt_.endian, data_len);
     pos += fmt_.len_len;
 
     /* data */
@@ -150,7 +141,7 @@ uint16_t Protocol::buildFrame(uint8_t* cmd,
 
     /* check */
     uint16_t check = calcCheck(data, data_len);
-    memcpy(&out_buf[pos], &check, fmt_.check_len);
+    endian_write_u32(&out_buf[pos], fmt_.check_len, fmt_.endian, check);
     pos += fmt_.check_len;
 
     /* tail */

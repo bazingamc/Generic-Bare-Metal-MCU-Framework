@@ -1,4 +1,5 @@
 #pragma once
+#include "endian.h"
 enum class CheckType : uint8_t
 {
     NONE = 0,
@@ -19,6 +20,8 @@ struct ProtocolFormat
 
     const uint8_t*    tail;
     uint8_t     tail_len;
+
+    EndianType  endian = EndianType::ENDIAN_LITTLE;
 };
 
 class Protocol
@@ -30,7 +33,7 @@ public:
     void reset();
     bool input(char ch);
 
-    const uint8_t* cmd()  const { return cmd_; }
+    const uint32_t cmd()  const { return data_cmd_; }
     const uint8_t* data() const { return data_; }
     uint16_t    dataLen() const { return data_len_; }
 
@@ -71,6 +74,7 @@ private:
     uint8_t tail_buf_[8];
 
     uint32_t data_len_;
+    uint32_t data_cmd_;
 
     
 };
